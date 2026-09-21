@@ -33,6 +33,16 @@ No other actor is part of version one.
 | Ticket priority | Work urgency: `Low`, `Medium`, `High`, or `Critical`. |
 | Ticket history | The append-only audit trail of meaningful ticket activity. |
 
+## Approved target user-management model
+
+> **Target model — not implemented in the current codebase.**
+
+A `User` is the common ServiceDesk participant identity and business-eligibility record. A User owns first name, last name, email, one fixed role, active state, and creation/update timestamps. The only supported roles are `Customer`, `Employee`, and `Administrator`.
+
+An administrator creates a complete User with exactly one supported role; the User is active by default. Administrators later maintain identifying information, role, and active state. Customer and Employee are the role-specific business concepts used for requesting and delivering support. An Administrator requires no separate business profile.
+
+The current implementation still has independent `Customer` and `Employee` entities that each contain identifying information. Their eventual relationship to User is intentionally not implemented yet. The target direction is for User to own the common participant identity and email, avoiding duplicated identity data when the User/profile relationship is introduced.
+
 ## Ticket lifecycle
 
 ```text
@@ -80,9 +90,9 @@ Employees have an immutable identity and creation time; first name, last name, e
 
 ## Authentication boundary
 
-Authentication is not a Domain entity by default. Passwords, password hashing, JWTs, login, refresh tokens, identity persistence, and authentication middleware belong to the API and infrastructure/application boundary when authentication is implemented. `Customer` and `Employee` are business records, not automatically login accounts.
+User management is separate from authentication. A User is a business participant identity, not authentication infrastructure. Passwords, password hashing, JWTs, login, refresh tokens, identity persistence, and authentication middleware remain outside this scope. `Customer` and `Employee` business profiles are not automatically login accounts.
 
-If either actor later authenticates, the authorization identity should be associated with the relevant business record without placing credentials or token mechanics in the Domain model. The exact customer-login scope and role policy remain intentionally undecided until authentication work is planned.
+If a User later authenticates, authentication identity should be associated with that User without placing credential or token mechanics in the Domain model.
 
 ## Scope boundaries
 

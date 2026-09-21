@@ -2,6 +2,18 @@
 
 ## Functional requirements
 
+### Approved target user management
+
+> **Target model — not implemented in the current codebase.**
+
+| ID | Requirement |
+|---|---|
+| UM-001 | An administrator shall create a User with required first name, last name, unique email, and exactly one role: `Customer`, `Employee`, or `Administrator`. A new User shall be active by default. |
+| UM-002 | An administrator shall update a User's first name, last name, email, role, and active state while preserving identity and timestamps as appropriate. |
+| UM-003 | User management shall not require passwords, login, JWTs, or other authentication mechanisms. |
+
+The current Customer and Employee entities still own separate email fields. The approved target direction is for User.Email to be the common participant email and unique across Users; the implementation transition is deferred to User-management work.
+
 ### Customer management
 
 | ID | Requirement |
@@ -51,7 +63,7 @@
 | NFR-004 | The production persistence store shall be SQL Server, accessed through Entity Framework Core. |
 | NFR-005 | Inputs shall be validated before a business operation executes; invalid input shall be rejected with actionable validation details. |
 | NFR-006 | Important operations, failures, and request context shall be logged using structured logging without recording credentials or tokens. |
-| NFR-007 | Authentication and role-based authorization are future capabilities and shall be designed without placing credential mechanics in the Domain layer. |
+| NFR-007 | User management and authentication shall remain separate. Authentication and role-based authorization shall be designed without placing credential mechanics in the Domain layer. |
 | NFR-008 | Domain rules and application workflows shall have automated unit tests; HTTP behavior and persistence interactions shall have integration tests. |
 | NFR-009 | Ticket updates shall use optimistic concurrency so stale changes cause a conflict rather than silently overwriting newer data. |
 | NFR-010 | The solution shall remain a modular monolith with Domain, UseCases, Infrastructure, and WebApi projects; it shall not introduce distributed infrastructure without a demonstrated need. |

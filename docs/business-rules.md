@@ -41,6 +41,21 @@ Status changes are explicit business operations because status determines whethe
 | BR-023 | Existing and historical tickets may retain their relationship to an employee who later becomes inactive. |
 | BR-024 | An employee must not be physically deleted when doing so would break ticket or history information; deactivation is the normal alternative. |
 
+## Approved target user rules
+
+> **Target model — not implemented in the current codebase.**
+
+| ID | Rule |
+|---|---|
+| UR-001 | A User requires first name, last name, email, and exactly one role: `Customer`, `Employee`, or `Administrator`. |
+| UR-002 | User email is unique across Users. |
+| UR-003 | A newly created User is active by default. |
+| UR-004 | An administrator may later update User identifying information, role, and active state. Unsupported roles are rejected. |
+| UR-005 | Role changes must preserve historical Customer and Employee business data; destructive profile handling is not defined. |
+| UR-006 | User management does not create authentication credentials or login behavior. |
+
+The current Customer and Employee entities still have their own identifying information. Their target relationship to User will be designed and implemented during User-management work.
+
 ## History rules
 
 | ID | Rule |
@@ -63,7 +78,7 @@ Status changes are explicit business operations because status determines whethe
 
 ## Authorization boundary
 
-The business rules describe what is allowed for valid records. Authentication credentials, tokens, and password storage are not Domain concepts. Future authorization determines which authenticated actor may invoke an operation; it must enforce these business rules rather than replace them.
+The business rules describe what is allowed for valid records. Authentication credentials, tokens, and password storage are not Domain concepts. User management is likewise separate from authentication. Future authorization determines which authenticated User may invoke an operation; it must enforce these business rules rather than replace them.
 
 ## Open policy decisions
 
