@@ -17,15 +17,19 @@ public sealed class UsersController(CreateUserShell createUserShell) : Controlle
         CancellationToken cancellationToken)
     {
         var command = new CreateUserCommand(request.FirstName, request.LastName, request.Email, request.Role);
-        var outcome = await createUserShell.ExecuteAsync(command, cancellationToken);
-
-        return outcome switch
+        try
         {
-            UserCreated created => Created($"/api/users/{created.User.Id}", ToResponse(created.User)),
-            UserCreationRejected { Failure: CreateUserFailureKind.EmailUnavailable } => Conflict(CreateProblemDetails("Email unavailable")),
-            UserCreationRejected rejected => BadRequest(CreateProblemDetails(rejected.Failure.ToString())),
-            _ => throw new InvalidOperationException("Unknown user creation outcome.")
-        };
+            var user = await createUserShell.ExecuteAsync(command, cancellationToken);
+            return Created($"/api/users/{user.Id}", ToResponse(user));
+        }
+        catch (CreateUserException exception) when (exception.Failure == CreateUserFailureKind.EmailUnavailable)
+        {
+            return Conflict(CreateProblemDetails("Email unavailable"));
+        }
+        catch (CreateUserException exception)
+        {
+            return BadRequest(CreateProblemDetails(exception.Failure.ToString()));
+        }
     }
 
     private static UserResponse ToResponse(User user) => new(

@@ -11,30 +11,31 @@ public sealed class CreateUserCoreTests
     [Fact]
     public void Execute_WithValidCommand_CreatesActiveUserFromSuppliedValues()
     {
-        var outcome = Execute(new CreateUserCommand(" Ada ", " Lovelace ", " Ada@Example.com ", UserRole.Customer));
+        var user = Execute(new CreateUserCommand(" Ada ", " Lovelace ", " Ada@Example.com ", UserRole.Customer));
 
-        var created = outcome.Should().BeOfType<UserCreated>().Subject;
-        created.User.Should().Be(new User(UserId, "Ada", "Lovelace", "ADA@EXAMPLE.COM", UserRole.Customer, true, Now, Now));
+        user.Should().Be(new User(UserId, "Ada", "Lovelace", "ADA@EXAMPLE.COM", UserRole.Customer, true, Now, Now));
     }
 
     [Theory]
     [InlineData(null)]
     [InlineData("")]
     [InlineData("   ")]
-    public void Execute_WithInvalidFirstName_Rejects(string? firstName)
+    public void Execute_WithInvalidFirstName_Throws(string? firstName)
     {
-        Execute(new CreateUserCommand(firstName, "Lovelace", "ada@example.com", UserRole.Customer))
-            .Should().Be(new UserCreationRejected(CreateUserFailureKind.InvalidFirstName));
+        var act = () => Execute(new CreateUserCommand(firstName, "Lovelace", "ada@example.com", UserRole.Customer));
+
+        act.Should().Throw<CreateUserException>().Which.Failure.Should().Be(CreateUserFailureKind.InvalidFirstName);
     }
 
     [Theory]
     [InlineData(null)]
     [InlineData("")]
     [InlineData("   ")]
-    public void Execute_WithInvalidLastName_Rejects(string? lastName)
+    public void Execute_WithInvalidLastName_Throws(string? lastName)
     {
-        Execute(new CreateUserCommand("Ada", lastName, "ada@example.com", UserRole.Customer))
-            .Should().Be(new UserCreationRejected(CreateUserFailureKind.InvalidLastName));
+        var act = () => Execute(new CreateUserCommand("Ada", lastName, "ada@example.com", UserRole.Customer));
+
+        act.Should().Throw<CreateUserException>().Which.Failure.Should().Be(CreateUserFailureKind.InvalidLastName);
     }
 
     [Theory]
@@ -43,17 +44,19 @@ public sealed class CreateUserCoreTests
     [InlineData("not-an-email")]
     [InlineData("ada@@example.com")]
     [InlineData("ada@example")]
-    public void Execute_WithInvalidEmail_Rejects(string? email)
+    public void Execute_WithInvalidEmail_Throws(string? email)
     {
-        Execute(new CreateUserCommand("Ada", "Lovelace", email, UserRole.Customer))
-            .Should().Be(new UserCreationRejected(CreateUserFailureKind.InvalidEmail));
+        var act = () => Execute(new CreateUserCommand("Ada", "Lovelace", email, UserRole.Customer));
+
+        act.Should().Throw<CreateUserException>().Which.Failure.Should().Be(CreateUserFailureKind.InvalidEmail);
     }
 
     [Fact]
-    public void Execute_WhenEmailIsUnavailable_Rejects()
+    public void Execute_WhenEmailIsUnavailable_Throws()
     {
-        Execute(new CreateUserCommand("Ada", "Lovelace", "ada@example.com", UserRole.Customer), new CreateUserFacts(false))
-            .Should().Be(new UserCreationRejected(CreateUserFailureKind.EmailUnavailable));
+        var act = () => Execute(new CreateUserCommand("Ada", "Lovelace", "ada@example.com", UserRole.Customer), new CreateUserFacts(false));
+
+        act.Should().Throw<CreateUserException>().Which.Failure.Should().Be(CreateUserFailureKind.EmailUnavailable);
     }
 
     [Theory]
@@ -62,16 +65,17 @@ public sealed class CreateUserCoreTests
     [InlineData(UserRole.Administrator)]
     public void Execute_WithSupportedRole_CreatesUser(UserRole role)
     {
-        var outcome = Execute(new CreateUserCommand("Ada", "Lovelace", "ada@example.com", role));
+        var user = Execute(new CreateUserCommand("Ada", "Lovelace", "ada@example.com", role));
 
-        outcome.Should().BeOfType<UserCreated>().Which.User.Role.Should().Be(role);
+        user.Role.Should().Be(role);
     }
 
     [Fact]
-    public void Execute_WithUnsupportedRole_Rejects()
+    public void Execute_WithUnsupportedRole_Throws()
     {
-        Execute(new CreateUserCommand("Ada", "Lovelace", "ada@example.com", (UserRole)99))
-            .Should().Be(new UserCreationRejected(CreateUserFailureKind.UnsupportedRole));
+        var act = () => Execute(new CreateUserCommand("Ada", "Lovelace", "ada@example.com", (UserRole)99));
+
+        act.Should().Throw<CreateUserException>().Which.Failure.Should().Be(CreateUserFailureKind.UnsupportedRole);
     }
 
     [Fact]
@@ -80,6 +84,6 @@ public sealed class CreateUserCoreTests
         CreateUserCore.CanonicalizeEmail(" Ada@Example.com ").Should().Be("ADA@EXAMPLE.COM");
     }
 
-    private static CreateUserOutcome Execute(CreateUserCommand command, CreateUserFacts? facts = null) =>
+    private static User Execute(CreateUserCommand command, CreateUserFacts? facts = null) =>
         CreateUserCore.Execute(command, facts ?? new CreateUserFacts(true), UserId, Now);
 }

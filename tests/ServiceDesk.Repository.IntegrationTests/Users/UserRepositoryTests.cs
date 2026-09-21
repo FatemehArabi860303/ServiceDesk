@@ -83,13 +83,11 @@ public sealed class UserRepositoryTests : IAsyncLifetime
 
     private static User CreateUser(string email)
     {
-        var outcome = CreateUserCore.Execute(
+        return CreateUserCore.Execute(
             new CreateUserCommand("Ada", "Lovelace", email, UserRole.Administrator),
             new CreateUserFacts(true),
             Guid.NewGuid(),
             new DateTimeOffset(2026, 9, 21, 12, 0, 0, TimeSpan.Zero));
-
-        return outcome.Should().BeOfType<UserCreated>().Subject.User;
     }
 
     private async Task<IReadOnlyList<string>> GetUniqueIndexNamesAsync()

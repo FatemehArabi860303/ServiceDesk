@@ -4,7 +4,7 @@ namespace ServiceDesk.Shell.Users;
 
 public sealed class CreateUserShell(IUserRepository userRepository)
 {
-    public async Task<CreateUserOutcome> ExecuteAsync(
+    public async Task<User> ExecuteAsync(
         CreateUserCommand command,
         CancellationToken cancellationToken = default)
     {
@@ -13,23 +13,16 @@ public sealed class CreateUserShell(IUserRepository userRepository)
         var email = CreateUserCore.CanonicalizeEmail(command.Email);
         var isEmailAvailable = await userRepository.IsEmailAvailableAsync(email, cancellationToken);
         var facts = new CreateUserFacts(isEmailAvailable);
-        var outcome = CreateUserCore.Execute(command, facts, Guid.NewGuid(), DateTimeOffset.UtcNow);
-
-        if (outcome is not UserCreated created)
-        {
-            return outcome;
-        }
-
-        var user = created.User;
+        var user = CreateUserCore.Execute(command, facts, Guid.NewGuid(), DateTimeOffset.UtcNow);
 
         try
         {
             await userRepository.AddAsync(user, cancellationToken);
-            return outcome;
+            return user;
         }
         catch (UserEmailAlreadyExistsException)
         {
-            return new UserCreationRejected(CreateUserFailureKind.EmailUnavailable);
+            throw new CreateUserException(CreateUserFailureKind.EmailUnavailable);
         }
     }
 }

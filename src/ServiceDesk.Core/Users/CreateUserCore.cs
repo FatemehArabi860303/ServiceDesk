@@ -6,7 +6,7 @@ public static class CreateUserCore
     public const int LastNameMaxLength = 100;
     public const int EmailMaxLength = 254;
 
-    public static CreateUserOutcome Execute(
+    public static User Execute(
         CreateUserCommand command,
         CreateUserFacts facts,
         Guid userId,
@@ -17,40 +17,39 @@ public static class CreateUserCore
 
         if (!IsValidName(command.FirstName, FirstNameMaxLength))
         {
-            return new UserCreationRejected(CreateUserFailureKind.InvalidFirstName);
+            throw new CreateUserException(CreateUserFailureKind.InvalidFirstName);
         }
 
         if (!IsValidName(command.LastName, LastNameMaxLength))
         {
-            return new UserCreationRejected(CreateUserFailureKind.InvalidLastName);
+            throw new CreateUserException(CreateUserFailureKind.InvalidLastName);
         }
 
         var email = CanonicalizeEmail(command.Email);
         if (!IsValidEmail(email))
         {
-            return new UserCreationRejected(CreateUserFailureKind.InvalidEmail);
+            throw new CreateUserException(CreateUserFailureKind.InvalidEmail);
         }
 
         if (!Enum.IsDefined(command.Role))
         {
-            return new UserCreationRejected(CreateUserFailureKind.UnsupportedRole);
+            throw new CreateUserException(CreateUserFailureKind.UnsupportedRole);
         }
 
         if (!facts.IsEmailAvailable)
         {
-            return new UserCreationRejected(CreateUserFailureKind.EmailUnavailable);
+            throw new CreateUserException(CreateUserFailureKind.EmailUnavailable);
         }
 
-        return new UserCreated(
-            new User(
-                userId,
-                command.FirstName!.Trim(),
-                command.LastName!.Trim(),
-                email,
-                command.Role,
-                IsActive: true,
-                CreatedAt: now,
-                UpdatedAt: now));
+        return new User(
+            userId,
+            command.FirstName!.Trim(),
+            command.LastName!.Trim(),
+            email,
+            command.Role,
+            IsActive: true,
+            CreatedAt: now,
+            UpdatedAt: now);
     }
 
     public static string CanonicalizeEmail(string? email) => email?.Trim().ToUpperInvariant() ?? string.Empty;
