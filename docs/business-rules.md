@@ -78,7 +78,7 @@ The current Customer and Employee entities still have their own identifying info
 
 ## Authorization boundary
 
-The business rules describe what is allowed for valid records. Authentication credentials, tokens, and password storage are not Domain concepts. User management is likewise separate from authentication. Future authorization determines which authenticated User may invoke an operation; it must enforce these business rules rather than replace them.
+The business rules describe what is allowed for valid records. Authentication credentials, tokens, and password storage are not Functional Core concepts. User management is likewise separate from authentication. Future authorization determines which authenticated User may invoke an operation; it must enforce these business rules rather than replace them.
 
 ## Open policy decisions
 

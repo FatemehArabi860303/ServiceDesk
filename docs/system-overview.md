@@ -92,7 +92,7 @@ Employees have an immutable identity and creation time; first name, last name, e
 
 User management is separate from authentication. A User is a business participant identity, not authentication infrastructure. Passwords, password hashing, JWTs, login, refresh tokens, identity persistence, and authentication middleware remain outside this scope. `Customer` and `Employee` business profiles are not automatically login accounts.
 
-If a User later authenticates, authentication identity should be associated with that User without placing credential or token mechanics in the Domain model.
+If a User later authenticates, authentication identity should be associated with that User without placing credential or token mechanics in the Functional Core model.
 
 ## Scope boundaries
 
