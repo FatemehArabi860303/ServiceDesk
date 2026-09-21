@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
@@ -85,6 +86,7 @@ public sealed class ServiceDeskApiFactory : WebApplicationFactory<Program>
 
         builder.ConfigureTestServices(services =>
         {
+            services.RemoveAll<IDbContextOptionsConfiguration<ServiceDeskDbContext>>();
             services.RemoveAll<DbContextOptions<ServiceDeskDbContext>>();
             services.RemoveAll<ServiceDeskDbContext>();
             services.RemoveAll<IUserRepository>();
