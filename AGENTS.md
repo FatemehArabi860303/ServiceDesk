@@ -68,22 +68,23 @@ If additional work is discovered, create or propose a separate backlog item inst
 
 ## 5. Architecture
 
-Respect the existing ServiceDesk architecture and project boundaries:
+Respect the strict Functional Core / Imperative Shell architecture and project boundaries:
 
 ```text
 src/
-  ServiceDesk.Domain
-  ServiceDesk.UseCases
-  ServiceDesk.Infrastructure
+  ServiceDesk.Core
+  ServiceDesk.Shell
+  ServiceDesk.Repository
   ServiceDesk.WebApi
 
 tests/
-  ServiceDesk.Domain.Tests
-  ServiceDesk.UseCases.Tests
+  ServiceDesk.Core.Tests
+  ServiceDesk.Shell.Tests
+  ServiceDesk.Repository.IntegrationTests
   ServiceDesk.WebApi.IntegrationTests
 ```
 
-Do not move responsibilities between layers without an explicit architectural requirement. Do not introduce production dependencies unless they are necessary for the issue. Prefer existing project patterns and conventions.
+Core decides through pure deterministic business logic. Shell gathers facts and executes effects. Repository performs persistence. WebApi owns HTTP composition and mapping. Do not introduce production dependencies unless they are necessary for the issue.
 
 ## 6. Testing
 
