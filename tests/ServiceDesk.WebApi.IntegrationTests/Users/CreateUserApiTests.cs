@@ -13,16 +13,19 @@ using ServiceDesk.Repository;
 using ServiceDesk.Repository.Users;
 using ServiceDesk.Shell.Users;
 using ServiceDesk.WebApi.Controllers;
+using Xunit.Abstractions;
 
 namespace ServiceDesk.WebApi.IntegrationTests.Users;
 
 public sealed class CreateUserApiTests : IClassFixture<ServiceDeskApiFactory>
 {
     private readonly HttpClient client;
+    private readonly ITestOutputHelper output;
 
-    public CreateUserApiTests(ServiceDeskApiFactory factory)
+    public CreateUserApiTests(ServiceDeskApiFactory factory, ITestOutputHelper output)
     {
         client = factory.CreateClient();
+        this.output = output;
     }
 
     [Fact]
@@ -30,6 +33,8 @@ public sealed class CreateUserApiTests : IClassFixture<ServiceDeskApiFactory>
     {
         var response = await client.PostAsJsonAsync("/api/users", new CreateUserHttpRequest(
             "Ada", "Lovelace", "ada@example.com", UserRole.Administrator));
+        output.WriteLine($"Response status: {(int)response.StatusCode} {response.StatusCode}");
+        output.WriteLine($"Response body: {await response.Content.ReadAsStringAsync()}");
 
         response.StatusCode.Should().Be(HttpStatusCode.Created);
         var created = await response.Content.ReadFromJsonAsync<UserResponse>();
@@ -90,6 +95,8 @@ public sealed class ServiceDeskApiFactory : WebApplicationFactory<Program>, IAsy
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
+        builder.UseSetting(WebHostDefaults.DetailedErrorsKey, "true");
+
         builder.ConfigureServices(services =>
         {
             services.RemoveAll<DbContextOptions<ServiceDeskDbContext>>();

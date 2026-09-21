@@ -5,13 +5,20 @@ using ServiceDesk.Core.Users;
 using ServiceDesk.Repository;
 using ServiceDesk.Repository.Users;
 using ServiceDesk.Shell.Users;
+using Xunit.Abstractions;
 
 namespace ServiceDesk.Repository.IntegrationTests.Users;
 
 public sealed class UserRepositoryTests : IAsyncLifetime
 {
     private readonly SqliteConnection connection = new("Data Source=:memory:");
+    private readonly ITestOutputHelper output;
     private DbContextOptions<ServiceDeskDbContext> options = null!;
+
+    public UserRepositoryTests(ITestOutputHelper output)
+    {
+        this.output = output;
+    }
 
     public async Task InitializeAsync()
     {
@@ -40,15 +47,36 @@ public sealed class UserRepositoryTests : IAsyncLifetime
     [Fact]
     public async Task AddAsync_WhenEquivalentCanonicalEmailAlreadyExists_ThrowsKnownPersistenceException()
     {
+        var firstUser = CreateUser("ADA@EXAMPLE.COM");
+        var secondUser = CreateUser("ada@example.com");
+        output.WriteLine($"First email: {firstUser.Email}");
+        output.WriteLine($"Second email: {secondUser.Email}");
+        firstUser.Email.Should().Be("ADA@EXAMPLE.COM");
+        secondUser.Email.Should().Be("ADA@EXAMPLE.COM");
+
         await using (var firstContext = new ServiceDeskDbContext(options))
         {
-            await new UserRepository(firstContext).AddAsync(CreateUser("ADA@EXAMPLE.COM"));
+            firstContext.Database.GetDbConnection().Should().BeSameAs(connection);
+            await new UserRepository(firstContext).AddAsync(firstUser);
+
+            (await firstContext.Users.SingleAsync()).Email.Should().Be("ADA@EXAMPLE.COM");
+
+            var emailIndex = firstContext.Model.FindEntityType(typeof(User))!
+                .GetIndexes()
+                .Single(index => index.Properties.Single().Name == nameof(User.Email));
+            output.WriteLine($"EF index: {emailIndex.Name}; unique: {emailIndex.IsUnique}");
+            emailIndex.IsUnique.Should().BeTrue();
         }
 
+        var uniqueIndexNames = await GetUniqueIndexNamesAsync();
+        output.WriteLine($"SQLite unique indexes: {string.Join(", ", uniqueIndexNames)}");
+        uniqueIndexNames.Should().Contain("UX_Users_Email");
+
         await using var secondContext = new ServiceDeskDbContext(options);
+        secondContext.Database.GetDbConnection().Should().BeSameAs(connection);
         var repository = new UserRepository(secondContext);
 
-        var action = () => repository.AddAsync(CreateUser("ada@example.com"));
+        var action = () => repository.AddAsync(secondUser);
 
         await action.Should().ThrowAsync<UserEmailAlreadyExistsException>();
     }
@@ -62,5 +90,23 @@ public sealed class UserRepositoryTests : IAsyncLifetime
             new DateTimeOffset(2026, 9, 21, 12, 0, 0, TimeSpan.Zero));
 
         return outcome.Should().BeOfType<UserCreated>().Subject.User;
+    }
+
+    private async Task<IReadOnlyList<string>> GetUniqueIndexNamesAsync()
+    {
+        await using var command = connection.CreateCommand();
+        command.CommandText = "PRAGMA index_list('Users');";
+        await using var reader = await command.ExecuteReaderAsync();
+        var names = new List<string>();
+
+        while (await reader.ReadAsync())
+        {
+            if (reader.GetInt64(2) == 1)
+            {
+                names.Add(reader.GetString(1));
+            }
+        }
+
+        return names;
     }
 }
