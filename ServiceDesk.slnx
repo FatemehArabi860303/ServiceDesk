@@ -1,12 +1,18 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/ServiceDesk.Domain/ServiceDesk.Domain.csproj" />
+    <Project Path="src/ServiceDesk.Core/ServiceDesk.Core.csproj" />
     <Project Path="src/ServiceDesk.Infrastructure/ServiceDesk.Infrastructure.csproj" />
+    <Project Path="src/ServiceDesk.Repository/ServiceDesk.Repository.csproj" />
+    <Project Path="src/ServiceDesk.Shell/ServiceDesk.Shell.csproj" />
     <Project Path="src/ServiceDesk.UseCases/ServiceDesk.UseCases.csproj" />
     <Project Path="src/ServiceDesk.WebApi/ServiceDesk.WebApi.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/ServiceDesk.Domain.Tests/ServiceDesk.Domain.Tests.csproj" />
+    <Project Path="tests/ServiceDesk.Core.Tests/ServiceDesk.Core.Tests.csproj" />
+    <Project Path="tests/ServiceDesk.Repository.IntegrationTests/ServiceDesk.Repository.IntegrationTests.csproj" />
+    <Project Path="tests/ServiceDesk.Shell.Tests/ServiceDesk.Shell.Tests.csproj" />
     <Project Path="tests/ServiceDesk.UseCases.Tests/ServiceDesk.UseCases.Tests.csproj" />
     <Project Path="tests/ServiceDesk.WebApi.IntegrationTests/ServiceDesk.WebApi.IntegrationTests.csproj" />
   </Folder>
