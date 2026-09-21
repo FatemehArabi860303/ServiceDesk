@@ -15,14 +15,8 @@ public sealed class CreateUserShell(IUserRepository userRepository)
         var facts = new CreateUserFacts(isEmailAvailable);
         var user = CreateUserCore.Execute(command, facts, Guid.NewGuid(), DateTimeOffset.UtcNow);
 
-        try
-        {
-            await userRepository.AddAsync(user, cancellationToken);
-            return user;
-        }
-        catch (UserEmailAlreadyExistsException)
-        {
-            throw new CreateUserException(CreateUserFailureKind.EmailUnavailable);
-        }
+        await userRepository.AddAsync(user, cancellationToken);
+
+        return user;
     }
 }

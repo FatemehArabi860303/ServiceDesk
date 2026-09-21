@@ -30,6 +30,10 @@ public sealed class UsersController(CreateUserShell createUserShell) : Controlle
         {
             return BadRequest(CreateProblemDetails(exception.Failure.ToString()));
         }
+        catch (UserEmailAlreadyExistsException)
+        {
+            return Conflict(CreateProblemDetails("Email unavailable"));
+        }
     }
 
     private static UserResponse ToResponse(User user) => new(

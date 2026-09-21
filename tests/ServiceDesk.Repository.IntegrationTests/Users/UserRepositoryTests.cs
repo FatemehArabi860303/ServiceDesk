@@ -33,12 +33,15 @@ public sealed class UserRepositoryTests : IAsyncLifetime
     [Fact]
     public async Task AddAsync_PersistsCanonicalUserAndMakesEmailUnavailable()
     {
+        // Arrange
         var user = CreateUser("ADA@EXAMPLE.COM");
         await using var context = new ServiceDeskDbContext(options);
         var repository = new UserRepository(context);
 
+        // Act
         await repository.AddAsync(user);
 
+        // Assert
         var stored = await context.Users.SingleAsync();
         stored.Should().Be(user);
         (await repository.IsEmailAvailableAsync(" ada@example.com ")).Should().BeFalse();
@@ -47,37 +50,47 @@ public sealed class UserRepositoryTests : IAsyncLifetime
     [Fact]
     public async Task AddAsync_WhenEquivalentCanonicalEmailAlreadyExists_ThrowsKnownPersistenceException()
     {
+        // Arrange
         var firstUser = CreateUser("ADA@EXAMPLE.COM");
         var secondUser = CreateUser("ada@example.com");
         output.WriteLine($"First email: {firstUser.Email}");
         output.WriteLine($"Second email: {secondUser.Email}");
-        firstUser.Email.Should().Be("ADA@EXAMPLE.COM");
-        secondUser.Email.Should().Be("ADA@EXAMPLE.COM");
 
+        // Act
+        bool firstContextUsesConnection;
+        string storedFirstEmail;
+        bool isEmailIndexUnique;
         await using (var firstContext = new ServiceDeskDbContext(options))
         {
-            firstContext.Database.GetDbConnection().Should().BeSameAs(connection);
+            firstContextUsesConnection = ReferenceEquals(firstContext.Database.GetDbConnection(), connection);
             await new UserRepository(firstContext).AddAsync(firstUser);
 
-            (await firstContext.Users.SingleAsync()).Email.Should().Be("ADA@EXAMPLE.COM");
+            storedFirstEmail = (await firstContext.Users.SingleAsync()).Email;
 
             var emailIndex = firstContext.Model.FindEntityType(typeof(User))!
                 .GetIndexes()
                 .Single(index => index.Properties.Single().Name == nameof(User.Email));
             output.WriteLine($"EF index: {emailIndex.Name}; unique: {emailIndex.IsUnique}");
-            emailIndex.IsUnique.Should().BeTrue();
+            isEmailIndexUnique = emailIndex.IsUnique;
         }
 
         var uniqueIndexNames = await GetUniqueIndexNamesAsync();
         output.WriteLine($"SQLite unique indexes: {string.Join(", ", uniqueIndexNames)}");
-        uniqueIndexNames.Should().Contain("UX_Users_Email");
 
         await using var secondContext = new ServiceDeskDbContext(options);
-        secondContext.Database.GetDbConnection().Should().BeSameAs(connection);
+        var secondContextUsesConnection = ReferenceEquals(secondContext.Database.GetDbConnection(), connection);
         var repository = new UserRepository(secondContext);
 
-        var action = () => repository.AddAsync(secondUser);
+        Func<Task> action = () => repository.AddAsync(secondUser);
 
+        // Assert
+        firstUser.Email.Should().Be("ADA@EXAMPLE.COM");
+        secondUser.Email.Should().Be("ADA@EXAMPLE.COM");
+        firstContextUsesConnection.Should().BeTrue();
+        storedFirstEmail.Should().Be("ADA@EXAMPLE.COM");
+        isEmailIndexUnique.Should().BeTrue();
+        uniqueIndexNames.Should().Contain("UX_Users_Email");
+        secondContextUsesConnection.Should().BeTrue();
         await action.Should().ThrowAsync<UserEmailAlreadyExistsException>();
     }
 

@@ -11,8 +11,13 @@ public sealed class CreateUserCoreTests
     [Fact]
     public void Execute_WithValidCommand_CreatesActiveUserFromSuppliedValues()
     {
-        var user = Execute(new CreateUserCommand(" Ada ", " Lovelace ", " Ada@Example.com ", UserRole.Customer));
+        // Arrange
+        var command = new CreateUserCommand(" Ada ", " Lovelace ", " Ada@Example.com ", UserRole.Customer);
 
+        // Act
+        var user = Execute(command);
+
+        // Assert
         user.Should().Be(new User(UserId, "Ada", "Lovelace", "ADA@EXAMPLE.COM", UserRole.Customer, true, Now, Now));
     }
 
@@ -22,8 +27,13 @@ public sealed class CreateUserCoreTests
     [InlineData("   ")]
     public void Execute_WithInvalidFirstName_Throws(string? firstName)
     {
-        var act = () => Execute(new CreateUserCommand(firstName, "Lovelace", "ada@example.com", UserRole.Customer));
+        // Arrange
+        var command = new CreateUserCommand(firstName, "Lovelace", "ada@example.com", UserRole.Customer);
 
+        // Act
+        Action act = () => Execute(command);
+
+        // Assert
         act.Should().Throw<CreateUserException>().Which.Failure.Should().Be(CreateUserFailureKind.InvalidFirstName);
     }
 
@@ -33,8 +43,13 @@ public sealed class CreateUserCoreTests
     [InlineData("   ")]
     public void Execute_WithInvalidLastName_Throws(string? lastName)
     {
-        var act = () => Execute(new CreateUserCommand("Ada", lastName, "ada@example.com", UserRole.Customer));
+        // Arrange
+        var command = new CreateUserCommand("Ada", lastName, "ada@example.com", UserRole.Customer);
 
+        // Act
+        Action act = () => Execute(command);
+
+        // Assert
         act.Should().Throw<CreateUserException>().Which.Failure.Should().Be(CreateUserFailureKind.InvalidLastName);
     }
 
@@ -46,16 +61,27 @@ public sealed class CreateUserCoreTests
     [InlineData("ada@example")]
     public void Execute_WithInvalidEmail_Throws(string? email)
     {
-        var act = () => Execute(new CreateUserCommand("Ada", "Lovelace", email, UserRole.Customer));
+        // Arrange
+        var command = new CreateUserCommand("Ada", "Lovelace", email, UserRole.Customer);
 
+        // Act
+        Action act = () => Execute(command);
+
+        // Assert
         act.Should().Throw<CreateUserException>().Which.Failure.Should().Be(CreateUserFailureKind.InvalidEmail);
     }
 
     [Fact]
     public void Execute_WhenEmailIsUnavailable_Throws()
     {
-        var act = () => Execute(new CreateUserCommand("Ada", "Lovelace", "ada@example.com", UserRole.Customer), new CreateUserFacts(false));
+        // Arrange
+        var command = new CreateUserCommand("Ada", "Lovelace", "ada@example.com", UserRole.Customer);
+        var facts = new CreateUserFacts(false);
 
+        // Act
+        Action act = () => Execute(command, facts);
+
+        // Assert
         act.Should().Throw<CreateUserException>().Which.Failure.Should().Be(CreateUserFailureKind.EmailUnavailable);
     }
 
@@ -65,23 +91,40 @@ public sealed class CreateUserCoreTests
     [InlineData(UserRole.Administrator)]
     public void Execute_WithSupportedRole_CreatesUser(UserRole role)
     {
-        var user = Execute(new CreateUserCommand("Ada", "Lovelace", "ada@example.com", role));
+        // Arrange
+        var command = new CreateUserCommand("Ada", "Lovelace", "ada@example.com", role);
 
+        // Act
+        var user = Execute(command);
+
+        // Assert
         user.Role.Should().Be(role);
     }
 
     [Fact]
     public void Execute_WithUnsupportedRole_Throws()
     {
-        var act = () => Execute(new CreateUserCommand("Ada", "Lovelace", "ada@example.com", (UserRole)99));
+        // Arrange
+        var command = new CreateUserCommand("Ada", "Lovelace", "ada@example.com", (UserRole)99);
 
+        // Act
+        Action act = () => Execute(command);
+
+        // Assert
         act.Should().Throw<CreateUserException>().Which.Failure.Should().Be(CreateUserFailureKind.UnsupportedRole);
     }
 
     [Fact]
     public void CanonicalizeEmail_TrimsAndUsesInvariantUpperCase()
     {
-        CreateUserCore.CanonicalizeEmail(" Ada@Example.com ").Should().Be("ADA@EXAMPLE.COM");
+        // Arrange
+        const string email = " Ada@Example.com ";
+
+        // Act
+        var canonicalEmail = CreateUserCore.CanonicalizeEmail(email);
+
+        // Assert
+        canonicalEmail.Should().Be("ADA@EXAMPLE.COM");
     }
 
     private static User Execute(CreateUserCommand command, CreateUserFacts? facts = null) =>

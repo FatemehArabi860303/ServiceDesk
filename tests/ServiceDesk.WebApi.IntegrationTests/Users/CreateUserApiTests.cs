@@ -33,11 +33,16 @@ public sealed class CreateUserApiTests : IClassFixture<ServiceDeskApiFactory>
     [Fact]
     public async Task Post_WithValidUser_ReturnsCreatedUser()
     {
-        var response = await client.PostAsJsonAsync("/api/users", new CreateUserHttpRequest(
-            "Ada", "Lovelace", "ada@example.com", UserRole.Administrator));
+        // Arrange
+        var request = new CreateUserHttpRequest(
+            "Ada", "Lovelace", "ada@example.com", UserRole.Administrator);
+
+        // Act
+        var response = await client.PostAsJsonAsync("/api/users", request);
         output.WriteLine($"Response status: {(int)response.StatusCode} {response.StatusCode}");
         output.WriteLine($"Response body: {await response.Content.ReadAsStringAsync()}");
 
+        // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Created);
         var created = await response.Content.ReadFromJsonAsync<UserResponse>();
         created.Should().NotBeNull();
@@ -49,29 +54,43 @@ public sealed class CreateUserApiTests : IClassFixture<ServiceDeskApiFactory>
     [Fact]
     public async Task Post_WithInvalidData_ReturnsBadRequest()
     {
-        var response = await client.PostAsJsonAsync("/api/users", new CreateUserHttpRequest(
-            " ", "Lovelace", "ada@example.com", UserRole.Customer));
+        // Arrange
+        var request = new CreateUserHttpRequest(
+            " ", "Lovelace", "ada@example.com", UserRole.Customer);
 
+        // Act
+        var response = await client.PostAsJsonAsync("/api/users", request);
+
+        // Assert
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
     [Fact]
     public async Task Post_WithDuplicateEmail_ReturnsConflict()
     {
+        // Arrange
         var request = new CreateUserHttpRequest("Grace", "Hopper", "grace@example.com", UserRole.Customer);
-        (await client.PostAsJsonAsync("/api/users", request)).StatusCode.Should().Be(HttpStatusCode.Created);
 
+        // Act
+        var firstResponse = await client.PostAsJsonAsync("/api/users", request);
         var response = await client.PostAsJsonAsync("/api/users", request);
 
+        // Assert
+        firstResponse.StatusCode.Should().Be(HttpStatusCode.Created);
         response.StatusCode.Should().Be(HttpStatusCode.Conflict);
     }
 
     [Fact]
     public async Task Post_WithUnsupportedRole_ReturnsBadRequest()
     {
-        var response = await client.PostAsJsonAsync("/api/users", new CreateUserHttpRequest(
-            "Ada", "Lovelace", "ada@example.com", (UserRole)99));
+        // Arrange
+        var request = new CreateUserHttpRequest(
+            "Ada", "Lovelace", "ada@example.com", (UserRole)99);
 
+        // Act
+        var response = await client.PostAsJsonAsync("/api/users", request);
+
+        // Assert
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 }
