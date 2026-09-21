@@ -15,19 +15,16 @@ using ServiceDesk.Repository;
 using ServiceDesk.Repository.Users;
 using ServiceDesk.Shell.Users;
 using ServiceDesk.WebApi.Controllers;
-using Xunit.Abstractions;
 
 namespace ServiceDesk.WebApi.IntegrationTests.Users;
 
 public sealed class CreateUserApiTests : IClassFixture<ServiceDeskApiFactory>
 {
     private readonly HttpClient client;
-    private readonly ITestOutputHelper output;
 
-    public CreateUserApiTests(ServiceDeskApiFactory factory, ITestOutputHelper output)
+    public CreateUserApiTests(ServiceDeskApiFactory factory)
     {
         client = factory.CreateClient();
-        this.output = output;
     }
 
     [Fact]
@@ -39,8 +36,6 @@ public sealed class CreateUserApiTests : IClassFixture<ServiceDeskApiFactory>
 
         // Act
         var response = await client.PostAsJsonAsync("/api/users", request);
-        output.WriteLine($"Response status: {(int)response.StatusCode} {response.StatusCode}");
-        output.WriteLine($"Response body: {await response.Content.ReadAsStringAsync()}");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Created);
