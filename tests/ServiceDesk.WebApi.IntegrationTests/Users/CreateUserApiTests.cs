@@ -7,6 +7,7 @@ using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
 using ServiceDesk.Core.Users;
 using ServiceDesk.Repository;
 using ServiceDesk.Repository.Users;
@@ -96,5 +97,18 @@ public sealed class ServiceDeskApiFactory : WebApplicationFactory<Program>, IAsy
             services.AddDbContext<ServiceDeskDbContext>(options => options.UseSqlite(connection));
             services.AddScoped<IUserRepository, UserRepository>();
         });
+    }
+
+    protected override IHost CreateHost(IHostBuilder builder)
+    {
+        if (connection.State != System.Data.ConnectionState.Open)
+        {
+            connection.Open();
+        }
+
+        var host = base.CreateHost(builder);
+        using var scope = host.Services.CreateScope();
+        scope.ServiceProvider.GetRequiredService<ServiceDeskDbContext>().Database.EnsureCreated();
+        return host;
     }
 }

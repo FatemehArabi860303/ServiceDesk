@@ -53,13 +53,14 @@ public sealed class UserRepositoryTests : IAsyncLifetime
         await action.Should().ThrowAsync<UserEmailAlreadyExistsException>();
     }
 
-    private static User CreateUser(string email) => new(
-        Guid.NewGuid(),
-        "Ada",
-        "Lovelace",
-        email,
-        UserRole.Administrator,
-        true,
-        new DateTimeOffset(2026, 9, 21, 12, 0, 0, TimeSpan.Zero),
-        new DateTimeOffset(2026, 9, 21, 12, 0, 0, TimeSpan.Zero));
+    private static User CreateUser(string email)
+    {
+        var outcome = CreateUserCore.Execute(
+            new CreateUserCommand("Ada", "Lovelace", email, UserRole.Administrator),
+            new CreateUserFacts(true),
+            Guid.NewGuid(),
+            new DateTimeOffset(2026, 9, 21, 12, 0, 0, TimeSpan.Zero));
+
+        return outcome.Should().BeOfType<UserCreated>().Subject.User;
+    }
 }
