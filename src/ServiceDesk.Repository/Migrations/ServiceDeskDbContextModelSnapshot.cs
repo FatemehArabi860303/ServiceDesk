@@ -2,6 +2,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using ServiceDesk.Core.Tickets;
 using ServiceDesk.Core.Users;
 using ServiceDesk.Repository;
 
@@ -59,6 +60,97 @@ partial class ServiceDeskDbContextModelSnapshot : ModelSnapshot
             builder.HasKey("Id");
             builder.HasIndex("Email").IsUnique().HasDatabaseName("UX_Users_Email");
             builder.ToTable("Users", (string)null);
+        });
+
+        modelBuilder.Entity("ServiceDesk.Core.Tickets.Ticket", builder =>
+        {
+            builder.Property<Guid>("Id")
+                .ValueGeneratedNever()
+                .HasColumnType("uniqueidentifier");
+
+            builder.Property<DateTimeOffset>("CreatedAt")
+                .HasColumnType("datetimeoffset");
+
+            builder.Property<Guid>("CustomerUserId")
+                .HasColumnType("uniqueidentifier");
+
+            builder.Property<string>("Description")
+                .IsRequired()
+                .HasColumnType("nvarchar(max)");
+
+            builder.Property<TicketPriority>("Priority")
+                .IsRequired()
+                .HasMaxLength(20)
+                .HasConversion<string>()
+                .HasColumnType("nvarchar(20)");
+
+            builder.Property<TicketStatus>("Status")
+                .IsRequired()
+                .HasMaxLength(20)
+                .HasConversion<string>()
+                .HasColumnType("nvarchar(20)");
+
+            builder.Property<string>("Title")
+                .IsRequired()
+                .HasColumnType("nvarchar(max)");
+
+            builder.Property<DateTimeOffset>("UpdatedAt")
+                .HasColumnType("datetimeoffset");
+
+            builder.HasKey("Id");
+            builder.HasIndex("CustomerUserId");
+            builder.ToTable("Tickets", (string)null);
+        });
+
+        modelBuilder.Entity("ServiceDesk.Core.Tickets.TicketHistory", builder =>
+        {
+            builder.Property<Guid>("Id")
+                .ValueGeneratedNever()
+                .HasColumnType("uniqueidentifier");
+
+            builder.Property<TicketHistoryAction>("Action")
+                .IsRequired()
+                .HasMaxLength(20)
+                .HasConversion<string>()
+                .HasColumnType("nvarchar(20)");
+
+            builder.Property<Guid>("ActorUserId")
+                .HasColumnType("uniqueidentifier");
+
+            builder.Property<DateTimeOffset>("OccurredAt")
+                .HasColumnType("datetimeoffset");
+
+            builder.Property<Guid>("TicketId")
+                .HasColumnType("uniqueidentifier");
+
+            builder.HasKey("Id");
+            builder.HasIndex("ActorUserId");
+            builder.HasIndex("TicketId");
+            builder.ToTable("TicketHistories", (string)null);
+        });
+
+        modelBuilder.Entity("ServiceDesk.Core.Tickets.Ticket", builder =>
+        {
+            builder.HasOne("ServiceDesk.Core.Users.User", null)
+                .WithMany()
+                .HasForeignKey("CustomerUserId")
+                .OnDelete(DeleteBehavior.Restrict)
+                .IsRequired();
+        });
+
+        modelBuilder.Entity("ServiceDesk.Core.Tickets.TicketHistory", builder =>
+        {
+            builder.HasOne("ServiceDesk.Core.Users.User", null)
+                .WithMany()
+                .HasForeignKey("ActorUserId")
+                .OnDelete(DeleteBehavior.Restrict)
+                .IsRequired();
+
+            builder.HasOne("ServiceDesk.Core.Tickets.Ticket", null)
+                .WithMany("History")
+                .HasForeignKey("TicketId")
+                .OnDelete(DeleteBehavior.Cascade)
+                .IsRequired();
         });
     }
 }

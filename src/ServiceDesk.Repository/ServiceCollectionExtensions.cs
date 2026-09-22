@@ -2,6 +2,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using ServiceDesk.Repository.Users;
+using ServiceDesk.Repository.Tickets;
+using ServiceDesk.Shell.Tickets;
 using ServiceDesk.Shell.Users;
 
 namespace ServiceDesk.Repository;
@@ -23,6 +25,7 @@ public static class ServiceCollectionExtensions
             options.UseSqlServer(connectionString);
         });
         services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<ITicketRepository, TicketRepository>();
 
         return services;
     }

@@ -41,6 +41,23 @@ public sealed class UserRepositoryTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task GetByIdAsync_WhenUserExists_ReturnsUser()
+    {
+        // Arrange
+        var user = CreateUser("ADA@EXAMPLE.COM");
+        await using var context = new ServiceDeskDbContext(options);
+        var repository = new UserRepository(context);
+        context.Users.Add(user);
+        await context.SaveChangesAsync();
+
+        // Act
+        var found = await repository.GetByIdAsync(user.Id);
+
+        // Assert
+        found.Should().Be(user);
+    }
+
+    [Fact]
     public async Task AddAsync_WhenEquivalentCanonicalEmailAlreadyExists_ThrowsKnownPersistenceException()
     {
         // Arrange
