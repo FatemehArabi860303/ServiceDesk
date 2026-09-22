@@ -9,12 +9,7 @@ public static class PasswordPolicy
 
     public static string NormalizeAndValidate(string? password)
     {
-        if (password is null)
-        {
-            throw new PasswordPolicyException(PasswordPolicyFailureKind.InvalidLength);
-        }
-
-        var normalizedPassword = password.Normalize(NormalizationForm.FormC);
+        var normalizedPassword = NormalizeForVerification(password);
         var length = normalizedPassword.EnumerateRunes().Count();
 
         if (length is < MinimumLength or > MaximumLength)
@@ -23,5 +18,22 @@ public static class PasswordPolicy
         }
 
         return normalizedPassword;
+    }
+
+    public static string NormalizeForVerification(string? password)
+    {
+        if (password is null)
+        {
+            throw new PasswordPolicyException(PasswordPolicyFailureKind.InvalidLength);
+        }
+
+        try
+        {
+            return password.Normalize(NormalizationForm.FormC);
+        }
+        catch (ArgumentException)
+        {
+            throw new PasswordPolicyException(PasswordPolicyFailureKind.InvalidLength);
+        }
     }
 }

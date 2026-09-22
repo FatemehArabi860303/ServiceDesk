@@ -27,6 +27,7 @@ public static class ServiceCollectionExtensions
             options.UseSqlServer(connectionString);
         });
         services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IAuthenticationRepository, AuthenticationRepository>();
         services.AddScoped<IAdministratorBootstrapRepository, AdministratorBootstrapRepository>();
         services.AddScoped<ITicketRepository, TicketRepository>();
 

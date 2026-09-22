@@ -7,13 +7,18 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using ServiceDesk.Core.Users;
 using ServiceDesk.Repository;
+using ServiceDesk.Repository.Authentication;
 using ServiceDesk.Repository.Users;
+using ServiceDesk.Shell.Authentication;
 using ServiceDesk.Shell.Users;
+using ServiceDesk.WebApi.IntegrationTests.Authentication;
 using ServiceDesk.WebApi.Controllers;
 
 namespace ServiceDesk.WebApi.IntegrationTests.Users;
@@ -92,11 +97,27 @@ public sealed class CreateUserApiTests : IClassFixture<ServiceDeskApiFactory>
 
 public sealed class ServiceDeskApiFactory : WebApplicationFactory<Program>
 {
+    public const string JwtIssuer = "ServiceDesk.WebApi.IntegrationTests";
+    public const string JwtAudience = "ServiceDesk.WebApi.IntegrationTests";
+    public const string JwtSigningKey = "integration-test-signing-key-32-bytes";
     private readonly SqliteConnection connection = new("Data Source=:memory:");
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseSetting(WebHostDefaults.DetailedErrorsKey, "true");
+        builder.UseSetting("Jwt:Issuer", JwtIssuer);
+        builder.UseSetting("Jwt:Audience", JwtAudience);
+        builder.UseSetting("Jwt:SigningKey", JwtSigningKey);
+        builder.ConfigureLogging(logging => logging.ClearProviders());
+        builder.ConfigureAppConfiguration((_, configurationBuilder) =>
+        {
+            configurationBuilder.AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Jwt:Issuer"] = JwtIssuer,
+                ["Jwt:Audience"] = JwtAudience,
+                ["Jwt:SigningKey"] = JwtSigningKey
+            });
+        });
 
         builder.ConfigureTestServices(services =>
         {
@@ -104,8 +125,11 @@ public sealed class ServiceDeskApiFactory : WebApplicationFactory<Program>
             services.RemoveAll<DbContextOptions<ServiceDeskDbContext>>();
             services.RemoveAll<ServiceDeskDbContext>();
             services.RemoveAll<IUserRepository>();
+            services.RemoveAll<IAuthenticationRepository>();
             services.AddDbContext<ServiceDeskDbContext>(options => options.UseSqlite(connection));
             services.AddScoped<IUserRepository, UserRepository>();
+            services.AddScoped<IAuthenticationRepository, AuthenticationRepository>();
+            services.AddControllers().AddApplicationPart(typeof(AuthenticationProbeController).Assembly);
         });
     }
 

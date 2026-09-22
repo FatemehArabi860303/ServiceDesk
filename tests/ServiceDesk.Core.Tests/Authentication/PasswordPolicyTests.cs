@@ -108,4 +108,30 @@ public sealed class PasswordPolicyTests
         // Assert
         normalized.Should().Be(password);
     }
+
+    [Fact]
+    public void NormalizeForVerification_NormalizesToNfcWithoutApplyingCreationLengthRules()
+    {
+        // Arrange
+        const string password = "e\u0301";
+
+        // Act
+        var normalized = PasswordPolicy.NormalizeForVerification(password);
+
+        // Assert
+        normalized.Should().Be("é");
+    }
+
+    [Fact]
+    public void NormalizeForVerification_WithNullPassword_ThrowsPasswordPolicyException()
+    {
+        // Arrange
+        const string? password = null;
+
+        // Act
+        Action act = () => PasswordPolicy.NormalizeForVerification(password);
+
+        // Assert
+        act.Should().Throw<PasswordPolicyException>();
+    }
 }
