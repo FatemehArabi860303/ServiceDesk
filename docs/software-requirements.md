@@ -2,9 +2,7 @@
 
 ## Functional requirements
 
-### Approved target user management
-
-> **Target model — not implemented in the current codebase.**
+### User management
 
 | ID | Requirement |
 |---|---|
@@ -12,38 +10,33 @@
 | UM-002 | An administrator shall update a User's first name, last name, email, role, and active state while preserving identity and timestamps as appropriate. |
 | UM-003 | User management shall not require passwords, login, JWTs, or other authentication mechanisms. |
 
-The current Customer and Employee entities still own separate email fields. The approved target direction is for User.Email to be the common participant email and unique across Users; the implementation transition is deferred to User-management work.
+Customer, Employee, and Administrator are User roles, not separate identity entities. User.Email is the common participant email and is unique across Users.
 
-### Customer management
-
-| ID | Requirement |
-|---|---|
-| FR-001 | The system shall create a customer with required first name, last name, and unique email; phone is optional. |
-| FR-002 | The system shall retrieve a customer by identifier. |
-| FR-003 | The system shall update mutable customer contact details while preserving customer identity and creation time. |
-| FR-004 | The system shall retrieve the tickets belonging to a customer. |
-
-### Employee management
+### Customer role behavior
 
 | ID | Requirement |
 |---|---|
-| FR-005 | The system shall create an employee with required first name, last name, unique email, and active state. |
-| FR-006 | The system shall retrieve an employee by identifier. |
-| FR-007 | The system shall update mutable employee details while preserving employee identity and creation time. |
-| FR-008 | The system shall activate or deactivate an employee. |
-| FR-009 | The system shall retrieve tickets assigned to an employee, including tickets retained for an employee who later becomes inactive. |
+| FR-001 | A User with the `Customer` role shall be the requester and owner of a service request. |
+| FR-002 | The system shall later retrieve the tickets belonging to a Customer User. |
+
+### Employee role behavior
+
+| ID | Requirement |
+|---|---|
+| FR-005 | A User with the `Employee` role shall be eligible to handle service requests. |
+| FR-006 | The system shall later retrieve tickets assigned to an Employee User, including tickets retained for an employee who later becomes inactive. |
 
 ### Ticket management
 
 | ID | Requirement |
 |---|---|
-| FR-010 | The system shall create a ticket for exactly one existing customer, with required title, description, and valid priority. New tickets start `Open` and may be unassigned. |
+| FR-010 | The system shall create a ticket for exactly one existing Customer User, with required title, description, and valid priority. New tickets start `Open` and may be unassigned. |
 | FR-011 | The system shall retrieve a ticket and its current details. |
-| FR-012 | The system shall list tickets and support practical filtering/searching by customer, assigned employee, status, priority, and text; results shall be pageable. |
-| FR-013 | The system shall update permitted ticket information, including title and description, without changing its customer ownership. |
+| FR-012 | The system shall list tickets and support practical filtering/searching by Customer User, assigned Employee User, status, priority, and text; results shall be pageable. |
+| FR-013 | The system shall update permitted ticket information, including title and description, without changing its Customer User ownership. |
 | FR-014 | The system shall change a ticket priority to a valid defined value and record the change. |
-| FR-015 | The system shall assign an active employee to an unassigned ticket and record the assignment. |
-| FR-016 | The system shall reassign a ticket to another active employee and record prior and new assignees. |
+| FR-015 | The system shall assign an active Employee User to an unassigned ticket and record the assignment. |
+| FR-016 | The system shall reassign a ticket to another active Employee User and record prior and new assignees. |
 | FR-017 | The system shall change status only through defined valid lifecycle transitions and record the change. |
 | FR-018 | The system shall add comments as attributable, immutable history entries. |
 | FR-019 | The system shall retrieve a ticket's history in chronological order. |
@@ -52,6 +45,14 @@ The current Customer and Employee entities still own separate email fields. The 
 | FR-022 | The system shall return a `Resolved` ticket to `InProgress` when more work is needed. |
 | FR-023 | The system shall reopen a `Closed` ticket to `InProgress`, clear `ClosedAt`, and record reopening. |
 | FR-024 | The system shall reject invalid status transitions without changing the ticket or creating history. |
+
+### ServiceDesk settings
+
+| ID | Requirement |
+|---|---|
+| CFG-001 | An administrator shall update ServiceDesk settings. |
+| CFG-002 | Settings shall include a future configurable hierarchical concept named `Feature`, with a name, description, and child Features. |
+| CFG-003 | Features may later classify service requests; the Ticket/Feature relationship is intentionally deferred to the future Update Settings design. |
 
 ## Non-functional requirements
 
@@ -118,11 +119,11 @@ The current Customer and Employee entities still own separate email fields. The 
 
 ## Database requirements
 
-All major records require primary keys. Required foreign-key relationships are `Ticket.CustomerId → Customer.Id`, nullable `Ticket.AssignedEmployeeId → Employee.Id`, and `TicketHistory.TicketId → Ticket.Id`. A history record also needs an actor reference appropriate to the eventual authorization model.
+All major records require primary keys. Required future foreign-key relationships are `Ticket.CustomerUserId → User.Id`, nullable `Ticket.AssignedEmployeeUserId → User.Id`, `TicketHistory.TicketId → Ticket.Id`, and `TicketHistory.ActorUserId → User.Id`. Ticket creation records the submitting customer as both `CustomerUserId` and `ActorUserId`.
 
-Customer and employee email must be unique. Useful indexes are customer email and employee email (uniqueness/lookups); ticket customer and assigned employee (customer and agent work lists); ticket status and priority (filtering queues); ticket creation date (sorting/reporting); and ticket-history ticket/date (chronological audit retrieval). Indexes should be created only for these expected query patterns and reviewed when real usage changes.
+User email must be unique. Useful indexes include ticket customer and assigned employee Users (customer and agent work lists); ticket status and priority (filtering queues); ticket creation date (sorting/reporting); and ticket-history ticket/date (chronological audit retrieval). Indexes should be created only for these expected query patterns and reviewed when real usage changes.
 
-The database must preserve references needed for ticket and history integrity. In particular, deleting an employee must not orphan historical information, and `AssignedEmployeeId` remains nullable for unassigned tickets.
+The database must preserve references needed for ticket and history integrity. In particular, deleting an Employee User must not orphan historical information, and `AssignedEmployeeUserId` remains nullable for unassigned tickets.
 
 ## Concurrency requirement
 
@@ -130,7 +131,7 @@ Ticket changes must be protected from lost updates. If two users read version 5,
 
 ## Deliberately undecided
 
-- Exact maximum lengths and formatting rules for names, title, description, phone, and comments.
+- Exact maximum lengths and formatting rules for names, title, description, and comments.
 - Whether customer self-service is included in the first API release or introduced with later authentication.
 - Exact role-to-operation permissions and who confirms a resolution.
-- Whether customers may ever be deactivated or deleted; any policy must preserve tickets and history.
+- Whether Users may ever be deactivated or deleted; any policy must preserve tickets and history.

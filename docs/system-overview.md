@@ -10,15 +10,15 @@ The system is intended to be practical for a small business: it prioritises clea
 
 ### Customer
 
-A customer is a person needing IT support. A customer can create and view their own tickets, provide additional information through comments, view current ticket status, and view ticket history. The API's future authorization design must ensure customers cannot access another customer's tickets.
+A customer is a User whose role is `Customer` and who needs IT support. A customer submits and owns service requests, and may later view their own requests, conversation, status, and history. Future authorization must ensure a customer cannot access another customer's requests.
 
 ### Employee / support agent
 
-An employee handles support tickets. An employee can view assigned work, work tickets, update status and priority, add comments/history, resolve tickets, and be assigned or reassigned to tickets.
+An employee is a User whose role is `Employee`. An employee handles support requests, including assigned work, lifecycle updates, priority changes, and comments/history.
 
 ### Administrator
 
-An administrator manages customers and employees, assigns or reassigns tickets, and can access tickets and their history. Administrator access does not bypass ticket lifecycle rules.
+An administrator is a User whose role is `Administrator`. An administrator manages Users and ServiceDesk settings, assigns or reassigns requests, and can access requests and their history. Administrator access does not bypass ticket lifecycle rules.
 
 No other actor is part of version one.
 
@@ -26,22 +26,19 @@ No other actor is part of version one.
 
 | Concept | Meaning |
 |---|---|
-| Customer | The person for whom a ticket is recorded. A customer has many tickets. |
-| Employee | A support worker who may be assigned to tickets. |
-| Ticket | One support request belonging to exactly one customer. |
+| User | The system identity with one role: `Customer`, `Employee`, or `Administrator`. |
+| Customer | A User with the `Customer` role who submits and owns requests. |
+| Employee | A User with the `Employee` role who may be assigned to requests. |
+| Ticket | One support request belonging to exactly one customer User. |
 | Ticket status | The current stage of work: `Open`, `InProgress`, `Resolved`, or `Closed`. |
 | Ticket priority | Work urgency: `Low`, `Medium`, `High`, or `Critical`. |
 | Ticket history | The append-only audit trail of meaningful ticket activity. |
 
-## Approved target user-management model
-
-> **Target model — not implemented in the current codebase.**
+## User identity model
 
 A `User` is the common ServiceDesk participant identity and business-eligibility record. A User owns first name, last name, email, one fixed role, active state, and creation/update timestamps. The only supported roles are `Customer`, `Employee`, and `Administrator`.
 
-An administrator creates a complete User with exactly one supported role; the User is active by default. Administrators later maintain identifying information, role, and active state. Customer and Employee are the role-specific business concepts used for requesting and delivering support. An Administrator requires no separate business profile.
-
-The current implementation still has independent `Customer` and `Employee` entities that each contain identifying information. Their eventual relationship to User is intentionally not implemented yet. The target direction is for User to own the common participant identity and email, avoiding duplicated identity data when the User/profile relationship is introduced.
+An administrator creates a complete User with exactly one supported role; the User is active by default. Customer, Employee, and Administrator are role meanings, not separate identity entities. No separate Customer or Employee identity profile is introduced.
 
 ## Ticket lifecycle
 
@@ -67,10 +64,10 @@ Every successful status operation creates a history record. Closing creates a **
 
 ## Ticket behavior
 
-A ticket conceptually contains its customer, optional assigned employee, status, priority, title, description, creation/update/closure times, and history.
+A future ticket conceptually contains `CustomerUserId`, optional `AssignedEmployeeUserId`, status, priority, title, description, creation/update/closure times, and history.
 
-- `Customer`, `CreatedAt`, and the ticket identity are immutable after creation.
-- `AssignedEmployee`, `Status`, `Priority`, `Title`, and `Description` may change through defined business operations.
+- `CustomerUserId`, `CreatedAt`, and the ticket identity are immutable after creation. `CustomerUserId` must reference a User with the `Customer` role.
+- `AssignedEmployeeUserId`, `Status`, `Priority`, `Title`, and `Description` may change through defined business operations. When assigned, `AssignedEmployeeUserId` must reference a User with the `Employee` role.
 - `UpdatedAt` changes when mutable ticket information, assignment, priority, status, or a comment changes.
 - `ClosedAt` is `null` unless status is `Closed`; it is set on closing and cleared only by reopening.
 - A ticket may begin unassigned. It may later be assigned or reassigned only to an active employee.
@@ -78,19 +75,23 @@ A ticket conceptually contains its customer, optional assigned employee, status,
 
 ## Ticket history
 
-History is an append-only audit trail, not a second editable ticket description. A record conceptually identifies the ticket, the actor who performed the action, the time, the action type, and a concise account of what changed. Where useful it stores prior and new values, such as old/new assignee, priority, or status.
+History is an append-only audit trail, not a second editable ticket description. A future record identifies the ticket, `ActorUserId`, occurrence time, action type, and a concise account of what changed. For ticket creation, `ActorUserId` equals `CustomerUserId`.
 
 Comments are represented as history entries with their author and comment text. The following operations must create history: ticket creation, assignment/reassignment, priority change, status change, adding a comment, title change, description change, closing, and reopening. Existing history is not normally edited or deleted.
 
-## Customer and employee behavior
+## Customer and employee role behavior
 
-Customers have an immutable identity and creation time; first name, last name, email, phone, and update time may change. First name, last name, and email are required; phone is optional. Customer email is unique. A customer has many tickets, while every ticket has exactly one customer. Moving an existing ticket to a different customer is not a normal supported operation.
+A customer User owns many tickets, while every ticket has exactly one customer User. Moving an existing ticket to a different customer User is not a normal supported operation.
 
-Employees have an immutable identity and creation time; first name, last name, email, active state, and update time may change. First name, last name, and email are required; email is unique. Inactive employees cannot receive new assignments, but historical and existing ticket references remain valid. Employees are deactivated rather than physically deleted when deletion would damage historical information.
+An employee User may be assigned to tickets. Inactive employee Users cannot receive new assignments, but historical and existing ticket references remain valid. Employee Users are deactivated rather than physically deleted when deletion would damage historical information.
+
+## ServiceDesk settings
+
+ServiceDesk settings will include a future configurable hierarchical concept named `Feature`. A Feature has a name, description, and child Features. It can represent classifications such as Software → Installation or Hardware → Repair, with deeper structures possible. Features may later classify service requests, but the Ticket/Feature relationship and all persistence, validation, hierarchy, and lifecycle details are intentionally deferred to the Update Settings work.
 
 ## Authentication boundary
 
-User management is separate from authentication. A User is a business participant identity, not authentication infrastructure. Passwords, password hashing, JWTs, login, refresh tokens, identity persistence, and authentication middleware remain outside this scope. `Customer` and `Employee` business profiles are not automatically login accounts.
+User management is separate from authentication. A User is a business participant identity, not authentication infrastructure. Passwords, password hashing, JWTs, login, refresh tokens, identity persistence, and authentication middleware remain outside this scope.
 
 If a User later authenticates, authentication identity should be associated with that User without placing credential or token mechanics in the Functional Core model.
 
@@ -101,7 +102,7 @@ Version one excludes email/SMS notifications, attachments, SLA management, escal
 ## Assumptions and open decisions
 
 1. The system serves one organisation; multi-tenancy is out of scope.
-2. Customer and employee email addresses are unique system-wide.
+2. User email addresses are unique system-wide.
 3. Assignment does not itself force a status change; starting work is explicit.
 4. The authorization details for who may create a ticket, close it, or confirm resolution need approval when authentication requirements are introduced.
-5. No deletion policy for customers is fixed yet; it must preserve ticket integrity and history.
+5. No deletion policy for Users is fixed yet; it must preserve ticket integrity and history.
