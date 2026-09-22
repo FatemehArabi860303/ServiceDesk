@@ -17,7 +17,7 @@ var isBootstrapCommand = ServiceDesk.WebApi.Bootstrap.BootstrapAdministratorComm
 
 if (!isBootstrapCommand)
 {
-    var jwtOptions = JwtOptions.FromConfiguration(builder.Configuration);
+    var jwtOptions = JwtOptions.BindAndValidate(builder.Configuration);
     builder.Services.AddSingleton(jwtOptions);
     builder.Services.AddSingleton<JwtAccessTokenIssuer>();
     builder.Services

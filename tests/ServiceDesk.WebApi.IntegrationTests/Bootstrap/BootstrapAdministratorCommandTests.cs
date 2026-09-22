@@ -7,6 +7,7 @@ using ServiceDesk.Core.Users;
 using ServiceDesk.Shell.Authentication;
 using ServiceDesk.Shell.Users;
 using BootstrapCommand = ServiceDesk.WebApi.Bootstrap.BootstrapAdministratorCommand;
+using BootstrapOptions = ServiceDesk.WebApi.Bootstrap.BootstrapAdministratorOptions;
 using WebApplicationStartup = ServiceDesk.WebApi.Bootstrap.WebApplicationStartup;
 
 namespace ServiceDesk.WebApi.IntegrationTests.Bootstrap;
@@ -112,10 +113,10 @@ public sealed class BootstrapAdministratorCommandTests
         new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["BootstrapAdministrator:FirstName"] = "Ada",
-                ["BootstrapAdministrator:LastName"] = "Lovelace",
-                ["BootstrapAdministrator:Email"] = "ada@example.com",
-                ["BootstrapAdministrator:Password"] = "123456789012345"
+                [$"{BootstrapOptions.SectionName}:{nameof(BootstrapOptions.FirstName)}"] = "Ada",
+                [$"{BootstrapOptions.SectionName}:{nameof(BootstrapOptions.LastName)}"] = "Lovelace",
+                [$"{BootstrapOptions.SectionName}:{nameof(BootstrapOptions.Email)}"] = "ada@example.com",
+                [$"{BootstrapOptions.SectionName}:{nameof(BootstrapOptions.Password)}"] = "123456789012345"
             })
             .Build();
 

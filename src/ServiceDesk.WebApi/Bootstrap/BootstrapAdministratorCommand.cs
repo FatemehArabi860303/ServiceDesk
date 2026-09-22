@@ -8,12 +8,17 @@ public static class BootstrapAdministratorCommand
 {
     public static bool IsRequested(string[] arguments) => arguments.SequenceEqual(["--bootstrap-administrator"]);
 
-    public static BootstrapAdministratorInput CreateInput(IConfiguration configuration) =>
-        new(
-            configuration["BootstrapAdministrator:FirstName"],
-            configuration["BootstrapAdministrator:LastName"],
-            configuration["BootstrapAdministrator:Email"],
-            configuration["BootstrapAdministrator:Password"]);
+    public static BootstrapAdministratorInput CreateInput(IConfiguration configuration)
+    {
+        var options = configuration.GetSection(BootstrapAdministratorOptions.SectionName)
+            .Get<BootstrapAdministratorOptions>() ?? new BootstrapAdministratorOptions();
+
+        return new BootstrapAdministratorInput(
+            options.FirstName,
+            options.LastName,
+            options.Email,
+            options.Password);
+    }
 
     public static async Task<bool> TryRunAsync(
         string[] arguments,

@@ -4,16 +4,20 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace ServiceDesk.WebApi.Authentication;
 
-public sealed record JwtOptions(string Issuer, string Audience, string SigningKey)
+public sealed class JwtOptions
 {
+    public const string SectionName = "Jwt";
     public const int AccessTokenLifetimeMinutes = 30;
 
-    public static JwtOptions FromConfiguration(IConfiguration configuration)
+    public string Issuer { get; init; } = string.Empty;
+
+    public string Audience { get; init; } = string.Empty;
+
+    public string SigningKey { get; init; } = string.Empty;
+
+    public static JwtOptions BindAndValidate(IConfiguration configuration)
     {
-        var options = new JwtOptions(
-            configuration["Jwt:Issuer"] ?? string.Empty,
-            configuration["Jwt:Audience"] ?? string.Empty,
-            configuration["Jwt:SigningKey"] ?? string.Empty);
+        var options = configuration.GetSection(SectionName).Get<JwtOptions>() ?? new JwtOptions();
 
         if (string.IsNullOrWhiteSpace(options.Issuer)
             || string.IsNullOrWhiteSpace(options.Audience)

@@ -18,6 +18,7 @@ using ServiceDesk.Repository.Authentication;
 using ServiceDesk.Repository.Users;
 using ServiceDesk.Shell.Authentication;
 using ServiceDesk.Shell.Users;
+using ServiceDesk.WebApi.Authentication;
 using ServiceDesk.WebApi.IntegrationTests.Authentication;
 using ServiceDesk.WebApi.Controllers;
 
@@ -105,17 +106,17 @@ public sealed class ServiceDeskApiFactory : WebApplicationFactory<Program>
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseSetting(WebHostDefaults.DetailedErrorsKey, "true");
-        builder.UseSetting("Jwt:Issuer", JwtIssuer);
-        builder.UseSetting("Jwt:Audience", JwtAudience);
-        builder.UseSetting("Jwt:SigningKey", JwtSigningKey);
+        builder.UseSetting(JwtConfigurationKey(nameof(JwtOptions.Issuer)), JwtIssuer);
+        builder.UseSetting(JwtConfigurationKey(nameof(JwtOptions.Audience)), JwtAudience);
+        builder.UseSetting(JwtConfigurationKey(nameof(JwtOptions.SigningKey)), JwtSigningKey);
         builder.ConfigureLogging(logging => logging.ClearProviders());
         builder.ConfigureAppConfiguration((_, configurationBuilder) =>
         {
             configurationBuilder.AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["Jwt:Issuer"] = JwtIssuer,
-                ["Jwt:Audience"] = JwtAudience,
-                ["Jwt:SigningKey"] = JwtSigningKey
+                [JwtConfigurationKey(nameof(JwtOptions.Issuer))] = JwtIssuer,
+                [JwtConfigurationKey(nameof(JwtOptions.Audience))] = JwtAudience,
+                [JwtConfigurationKey(nameof(JwtOptions.SigningKey))] = JwtSigningKey
             });
         });
 
@@ -155,4 +156,6 @@ public sealed class ServiceDeskApiFactory : WebApplicationFactory<Program>
 
         base.Dispose(disposing);
     }
+
+    private static string JwtConfigurationKey(string propertyName) => $"{JwtOptions.SectionName}:{propertyName}";
 }

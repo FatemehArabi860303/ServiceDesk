@@ -111,7 +111,12 @@ public sealed class AuthenticateUserApiTests : IClassFixture<ServiceDeskApiFacto
     public void Issue_WithExplicitTime_ExpiresExactlyThirtyMinutesLater()
     {
         // Arrange
-        var options = new JwtOptions(ServiceDeskApiFactory.JwtIssuer, ServiceDeskApiFactory.JwtAudience, ServiceDeskApiFactory.JwtSigningKey);
+        var options = new JwtOptions
+        {
+            Issuer = ServiceDeskApiFactory.JwtIssuer,
+            Audience = ServiceDeskApiFactory.JwtAudience,
+            SigningKey = ServiceDeskApiFactory.JwtSigningKey
+        };
         var issuer = new JwtAccessTokenIssuer(options);
         var user = CreateUser(isActive: true);
         var now = new DateTimeOffset(2026, 9, 22, 12, 0, 0, TimeSpan.Zero);
