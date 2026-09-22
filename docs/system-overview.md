@@ -91,9 +91,15 @@ ServiceDesk settings will include a future configurable hierarchical concept nam
 
 ## Authentication boundary
 
-User management is separate from authentication. A User is a business participant identity, not authentication infrastructure. Passwords, password hashing, JWTs, login, refresh tokens, identity persistence, and authentication middleware remain outside this scope.
+User management is separate from authentication. A User remains the authoritative business participant identity and owns one fixed role, but credentials are not part of the Functional Core User model. Authentication uses the User's unique email as its login identifier and immutable User identity as the authenticated identity.
 
-If a User later authenticates, authentication identity should be associated with that User without placing credential or token mechanics in the Functional Core model.
+ServiceDesk will use self-issued JWT bearer authentication. A separate `UserCredential` record associates a User with only `UserId` and `PasswordHash`. Passwords are never stored in plaintext. JWTs, password hashing, credential persistence, login, and authentication middleware remain outside the Functional Core.
+
+Passwords are a single authentication factor. They must contain 15 to 128 Unicode code points, may contain Unicode and spaces, are normalized to NFC before hashing and verification, and are neither trimmed nor silently truncated. No character-composition rule or periodic expiration applies.
+
+Initial installation requires an explicit deployment/setup seed operation, not automatic startup behavior. On an empty installation only, it creates the first Administrator User and credential using protected deployment configuration or secrets. Later, an authenticated active Administrator may initialize a credential for an existing active User that has no credential. Credential initialization does not replace an existing credential or modify the User's identity, profile, or role.
+
+The operational sequence is: explicitly seed the first Administrator, authenticate that Administrator, provision credentials for existing Users, authenticate those Users, then allow protected operations such as customer ticket submission. This setup behavior is not a public product endpoint.
 
 ## Scope boundaries
 
@@ -104,5 +110,5 @@ Version one excludes email/SMS notifications, attachments, SLA management, escal
 1. The system serves one organisation; multi-tenancy is out of scope.
 2. User email addresses are unique system-wide.
 3. Assignment does not itself force a status change; starting work is explicit.
-4. The authorization details for who may create a ticket, close it, or confirm resolution need approval when authentication requirements are introduced.
+4. Detailed authorization policies beyond approved authentication and credential provisioning, including who may close or confirm a ticket resolution, remain to be defined.
 5. No deletion policy for Users is fixed yet; it must preserve ticket integrity and history.

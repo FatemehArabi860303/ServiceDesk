@@ -12,6 +12,18 @@
 
 Customer, Employee, and Administrator are User roles, not separate identity entities. User.Email is the common participant email and is unique across Users.
 
+### Secure ServiceDesk Access
+
+| ID | Requirement |
+|---|---|
+| AUTH-001 | ServiceDesk shall use self-issued JWT bearer authentication. A successful login shall identify the immutable User.Id and current User.Role in a signed, expiring token. The initial access-token lifetime shall be 30 minutes. |
+| AUTH-002 | Login shall use the User's unique email and password. A User must exist, be active, have a credential, and verify the password. Unknown email, missing credential, invalid password, and inactive User failures shall be externally generic. |
+| AUTH-003 | Authentication credentials shall be persisted separately from User management as UserCredential data containing only UserId and PasswordHash. Passwords shall never be persisted in plaintext. |
+| AUTH-004 | Passwords shall contain 15 to 128 Unicode code points; Unicode and spaces are allowed; NFC normalization shall occur before hashing and verification; passwords shall not be trimmed or silently truncated; no composition rule or periodic expiration applies. |
+| AUTH-005 | An authenticated active Administrator shall initialize a credential only for an existing active User with no credential. Initialization shall not replace an existing credential or modify the User's identity, profile, or role. |
+| AUTH-006 | An explicit deployment/setup seed operation shall create the first Administrator User and credential only for an empty installation, using protected deployment configuration or secrets. It shall reject subsequent bootstrap attempts. |
+| AUTH-007 | JWT issuer, audience, signature, and expiration shall be validated. Signing material shall come from protected deployment configuration, and passwords, hashes, and tokens shall not be logged. |
+
 ### Customer role behavior
 
 | ID | Requirement |
@@ -64,7 +76,7 @@ Customer, Employee, and Administrator are User roles, not separate identity enti
 | NFR-004 | The production persistence store shall be SQL Server, accessed through Entity Framework Core. |
 | NFR-005 | Inputs shall be validated before a business operation executes; invalid input shall be rejected with actionable validation details. |
 | NFR-006 | Important operations, failures, and request context shall be logged using structured logging without recording credentials or tokens. |
-| NFR-007 | User management and authentication shall remain separate. Authentication and role-based authorization shall be designed without placing credential mechanics in the Functional Core. |
+| NFR-007 | User management and authentication shall remain separate. Authentication and role-based authorization shall use the existing User identity and role without placing credential, password-hashing, or JWT mechanics in the Functional Core. |
 | NFR-008 | Functional Core rules and Shell workflows shall have automated unit tests; HTTP behavior and persistence interactions shall have integration tests. |
 | NFR-009 | Ticket updates shall use optimistic concurrency so stale changes cause a conflict rather than silently overwriting newer data. |
 | NFR-010 | The solution shall remain a modular monolith with Core, Shell, Repository, and WebApi projects; it shall not introduce distributed infrastructure without a demonstrated need. |
@@ -132,6 +144,5 @@ Ticket changes must be protected from lost updates. If two users read version 5,
 ## Deliberately undecided
 
 - Exact maximum lengths and formatting rules for names, title, description, and comments.
-- Whether customer self-service is included in the first API release or introduced with later authentication.
 - Exact role-to-operation permissions and who confirms a resolution.
 - Whether Users may ever be deactivated or deleted; any policy must preserve tickets and history.

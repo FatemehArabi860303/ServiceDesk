@@ -53,6 +53,20 @@ Status changes are explicit business operations because status determines whethe
 
 Customer, Employee, and Administrator are User roles, not separate identity entities.
 
+## Authentication and credential rules
+
+| ID | Rule |
+|---|---|
+| AR-001 | A User remains the authoritative ServiceDesk business identity. Authentication identifies the immutable User.Id and existing User.Role without placing credentials in the Core User model. |
+| AR-002 | A UserCredential is separate from User and contains only UserId and PasswordHash. Passwords are never persisted in plaintext. |
+| AR-003 | A password must contain 15 to 128 Unicode code points. Unicode and spaces are allowed; NFC normalization occurs before hashing and verification; passwords are neither trimmed nor silently truncated; no composition rule or periodic expiration applies. |
+| AR-004 | Login uses unique User email and password. A User must exist, be active, have a credential, and verify its password. Externally, unknown email, missing credential, invalid password, and inactive User failures are generic. |
+| AR-005 | A successful login issues a signed, expiring JWT that identifies immutable User.Id and current User.Role. Its issuer, audience, signature, and expiration must be validated. |
+| AR-006 | An authenticated active Administrator may initialize a credential only for an existing active User with no credential. Initializing a credential neither replaces an existing credential nor changes User identity, profile, or role. |
+| AR-007 | An explicit deployment/setup seed operation may create the first Administrator User and credential only for an empty installation, using protected deployment configuration or secrets. Subsequent bootstrap attempts are rejected. |
+
+Password replacement/change, password reset, invitation email, temporary-password expiration, email verification, MFA, refresh tokens, revocation lists, external identity providers, ASP.NET Identity migration, dynamic RBAC, and OAuth/OIDC authorization-server implementation are outside the initial authentication scope.
+
 ## History rules
 
 | ID | Rule |
@@ -75,7 +89,7 @@ Customer, Employee, and Administrator are User roles, not separate identity enti
 
 ## Authorization boundary
 
-The business rules describe what is allowed for valid records. Authentication credentials, tokens, and password storage are not Functional Core concepts. User management is likewise separate from authentication. Future authorization determines which authenticated User may invoke an operation; it must enforce these business rules rather than replace them.
+The business rules describe what is allowed for valid records. Authentication credentials, tokens, password storage, hashing, and JWT mechanics are not Functional Core concepts. User management is separate from authentication. Future authorization determines which authenticated User may invoke an operation; it must enforce these business rules rather than replace them.
 
 ## Future ServiceDesk settings
 
