@@ -2,9 +2,9 @@ namespace ServiceDesk.Core.Users;
 
 public static class CreateUserCore
 {
-    public const int FirstNameMaxLength = 100;
-    public const int LastNameMaxLength = 100;
-    public const int EmailMaxLength = 254;
+    public const int FirstNameMaxLength = UserRules.FirstNameMaxLength;
+    public const int LastNameMaxLength = UserRules.LastNameMaxLength;
+    public const int EmailMaxLength = UserRules.EmailMaxLength;
 
     public static User Execute(
         CreateUserCommand command,
@@ -15,23 +15,23 @@ public static class CreateUserCore
         ArgumentNullException.ThrowIfNull(command);
         ArgumentNullException.ThrowIfNull(facts);
 
-        if (!IsValidName(command.FirstName, FirstNameMaxLength))
+        if (!UserRules.IsValidName(command.FirstName, FirstNameMaxLength))
         {
             throw new CreateUserException(CreateUserFailureKind.InvalidFirstName);
         }
 
-        if (!IsValidName(command.LastName, LastNameMaxLength))
+        if (!UserRules.IsValidName(command.LastName, LastNameMaxLength))
         {
             throw new CreateUserException(CreateUserFailureKind.InvalidLastName);
         }
 
-        var email = CanonicalizeEmail(command.Email);
-        if (!IsValidEmail(email))
+        var email = UserRules.CanonicalizeEmail(command.Email);
+        if (!UserRules.IsValidEmail(email))
         {
             throw new CreateUserException(CreateUserFailureKind.InvalidEmail);
         }
 
-        if (!Enum.IsDefined(command.Role))
+        if (!UserRules.IsSupportedRole(command.Role))
         {
             throw new CreateUserException(CreateUserFailureKind.UnsupportedRole);
         }
@@ -52,25 +52,5 @@ public static class CreateUserCore
             UpdatedAt: now);
     }
 
-    public static string CanonicalizeEmail(string? email) => email?.Trim().ToUpperInvariant() ?? string.Empty;
-
-    private static bool IsValidName(string? value, int maximumLength) =>
-        !string.IsNullOrWhiteSpace(value) && value.Trim().Length <= maximumLength;
-
-    private static bool IsValidEmail(string email)
-    {
-        if (email.Length is 0 or > EmailMaxLength || email.Any(char.IsWhiteSpace))
-        {
-            return false;
-        }
-
-        var atIndex = email.IndexOf('@');
-        if (atIndex <= 0 || atIndex != email.LastIndexOf('@') || atIndex == email.Length - 1)
-        {
-            return false;
-        }
-
-        var domain = email[(atIndex + 1)..];
-        return domain.Length > 2 && domain[0] != '.' && domain[^1] != '.' && domain.Contains('.');
-    }
+    public static string CanonicalizeEmail(string? email) => UserRules.CanonicalizeEmail(email);
 }

@@ -8,6 +8,9 @@ namespace ServiceDesk.Repository.Users;
 
 public sealed class UserRepository(ServiceDeskDbContext dbContext) : IUserRepository
 {
+    public Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) =>
+        dbContext.Users.SingleOrDefaultAsync(user => user.Id == id, cancellationToken);
+
     public async Task<bool> IsEmailAvailableAsync(string email, CancellationToken cancellationToken = default)
     {
         var canonicalEmail = CreateUserCore.CanonicalizeEmail(email);

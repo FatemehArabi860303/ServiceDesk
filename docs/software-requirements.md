@@ -2,9 +2,7 @@
 
 ## Functional requirements
 
-### Approved target user management
-
-> **Target model — not implemented in the current codebase.**
+### User management
 
 | ID | Requirement |
 |---|---|
@@ -12,38 +10,45 @@
 | UM-002 | An administrator shall update a User's first name, last name, email, role, and active state while preserving identity and timestamps as appropriate. |
 | UM-003 | User management shall not require passwords, login, JWTs, or other authentication mechanisms. |
 
-The current Customer and Employee entities still own separate email fields. The approved target direction is for User.Email to be the common participant email and unique across Users; the implementation transition is deferred to User-management work.
+Customer, Employee, and Administrator are User roles, not separate identity entities. User.Email is the common participant email and is unique across Users.
 
-### Customer management
-
-| ID | Requirement |
-|---|---|
-| FR-001 | The system shall create a customer with required first name, last name, and unique email; phone is optional. |
-| FR-002 | The system shall retrieve a customer by identifier. |
-| FR-003 | The system shall update mutable customer contact details while preserving customer identity and creation time. |
-| FR-004 | The system shall retrieve the tickets belonging to a customer. |
-
-### Employee management
+### Secure ServiceDesk Access
 
 | ID | Requirement |
 |---|---|
-| FR-005 | The system shall create an employee with required first name, last name, unique email, and active state. |
-| FR-006 | The system shall retrieve an employee by identifier. |
-| FR-007 | The system shall update mutable employee details while preserving employee identity and creation time. |
-| FR-008 | The system shall activate or deactivate an employee. |
-| FR-009 | The system shall retrieve tickets assigned to an employee, including tickets retained for an employee who later becomes inactive. |
+| AUTH-001 | ServiceDesk shall use self-issued JWT bearer authentication. A successful login shall identify the immutable User.Id and current User.Role in a signed, expiring token. The initial access-token lifetime shall be 30 minutes. |
+| AUTH-002 | Login shall use the User's unique email and password. A User must exist, be active, have a credential, and verify the password. Unknown email, missing credential, invalid password, and inactive User failures shall be externally generic. |
+| AUTH-003 | Authentication credentials shall be persisted separately from User management as UserCredential data containing only UserId and PasswordHash. Passwords shall never be persisted in plaintext. |
+| AUTH-004 | Passwords shall contain 15 to 128 Unicode code points; Unicode and spaces are allowed; NFC normalization shall occur before hashing and verification; passwords shall not be trimmed or silently truncated; no composition rule or periodic expiration applies. |
+| AUTH-005 | An authenticated active Administrator shall initialize a credential only for an existing active User with no credential. Initialization shall not replace an existing credential or modify the User's identity, profile, or role. |
+| AUTH-006 | An explicit deployment/setup seed operation shall create the first Administrator User and credential only for an empty installation, using protected deployment configuration or secrets. It shall reject subsequent bootstrap attempts. |
+| AUTH-007 | JWT issuer, audience, signature, and expiration shall be validated. Signing material shall come from protected deployment configuration, and passwords, hashes, and tokens shall not be logged. |
+
+### Customer role behavior
+
+| ID | Requirement |
+|---|---|
+| FR-001 | A User with the `Customer` role shall be the requester and owner of a service request. |
+| FR-002 | The system shall later retrieve the tickets belonging to a Customer User. |
+
+### Employee role behavior
+
+| ID | Requirement |
+|---|---|
+| FR-005 | A User with the `Employee` role shall be eligible to handle service requests. |
+| FR-006 | The system shall later retrieve tickets assigned to an Employee User, including tickets retained for an employee who later becomes inactive. |
 
 ### Ticket management
 
 | ID | Requirement |
 |---|---|
-| FR-010 | The system shall create a ticket for exactly one existing customer, with required title, description, and valid priority. New tickets start `Open` and may be unassigned. |
+| FR-010 | The system shall create a ticket for exactly one existing Customer User, with required title, description, and valid priority. New tickets start `Open` and may be unassigned. |
 | FR-011 | The system shall retrieve a ticket and its current details. |
-| FR-012 | The system shall list tickets and support practical filtering/searching by customer, assigned employee, status, priority, and text; results shall be pageable. |
-| FR-013 | The system shall update permitted ticket information, including title and description, without changing its customer ownership. |
+| FR-012 | The system shall list tickets and support practical filtering/searching by Customer User, assigned Employee User, status, priority, and text; results shall be pageable. |
+| FR-013 | The system shall update permitted ticket information, including title and description, without changing its Customer User ownership. |
 | FR-014 | The system shall change a ticket priority to a valid defined value and record the change. |
-| FR-015 | The system shall assign an active employee to an unassigned ticket and record the assignment. |
-| FR-016 | The system shall reassign a ticket to another active employee and record prior and new assignees. |
+| FR-015 | The system shall assign an active Employee User to an unassigned ticket and record the assignment. |
+| FR-016 | The system shall reassign a ticket to another active Employee User and record prior and new assignees. |
 | FR-017 | The system shall change status only through defined valid lifecycle transitions and record the change. |
 | FR-018 | The system shall add comments as attributable, immutable history entries. |
 | FR-019 | The system shall retrieve a ticket's history in chronological order. |
@@ -52,6 +57,14 @@ The current Customer and Employee entities still own separate email fields. The 
 | FR-022 | The system shall return a `Resolved` ticket to `InProgress` when more work is needed. |
 | FR-023 | The system shall reopen a `Closed` ticket to `InProgress`, clear `ClosedAt`, and record reopening. |
 | FR-024 | The system shall reject invalid status transitions without changing the ticket or creating history. |
+
+### ServiceDesk settings
+
+| ID | Requirement |
+|---|---|
+| CFG-001 | An administrator shall update ServiceDesk settings. |
+| CFG-002 | Settings shall include a future configurable hierarchical concept named `Feature`, with a name, description, and child Features. |
+| CFG-003 | Features may later classify service requests; the Ticket/Feature relationship is intentionally deferred to the future Update Settings design. |
 
 ## Non-functional requirements
 
@@ -63,7 +76,7 @@ The current Customer and Employee entities still own separate email fields. The 
 | NFR-004 | The production persistence store shall be SQL Server, accessed through Entity Framework Core. |
 | NFR-005 | Inputs shall be validated before a business operation executes; invalid input shall be rejected with actionable validation details. |
 | NFR-006 | Important operations, failures, and request context shall be logged using structured logging without recording credentials or tokens. |
-| NFR-007 | User management and authentication shall remain separate. Authentication and role-based authorization shall be designed without placing credential mechanics in the Functional Core. |
+| NFR-007 | User management and authentication shall remain separate. Authentication and role-based authorization shall use the existing User identity and role without placing credential, password-hashing, or JWT mechanics in the Functional Core. |
 | NFR-008 | Functional Core rules and Shell workflows shall have automated unit tests; HTTP behavior and persistence interactions shall have integration tests. |
 | NFR-009 | Ticket updates shall use optimistic concurrency so stale changes cause a conflict rather than silently overwriting newer data. |
 | NFR-010 | The solution shall remain a modular monolith with Core, Shell, Repository, and WebApi projects; it shall not introduce distributed infrastructure without a demonstrated need. |
@@ -118,11 +131,11 @@ The current Customer and Employee entities still own separate email fields. The 
 
 ## Database requirements
 
-All major records require primary keys. Required foreign-key relationships are `Ticket.CustomerId → Customer.Id`, nullable `Ticket.AssignedEmployeeId → Employee.Id`, and `TicketHistory.TicketId → Ticket.Id`. A history record also needs an actor reference appropriate to the eventual authorization model.
+All major records require primary keys. Required future foreign-key relationships are `Ticket.CustomerUserId → User.Id`, nullable `Ticket.AssignedEmployeeUserId → User.Id`, `TicketHistory.TicketId → Ticket.Id`, and `TicketHistory.ActorUserId → User.Id`. Ticket creation records the submitting customer as both `CustomerUserId` and `ActorUserId`.
 
-Customer and employee email must be unique. Useful indexes are customer email and employee email (uniqueness/lookups); ticket customer and assigned employee (customer and agent work lists); ticket status and priority (filtering queues); ticket creation date (sorting/reporting); and ticket-history ticket/date (chronological audit retrieval). Indexes should be created only for these expected query patterns and reviewed when real usage changes.
+User email must be unique. Useful indexes include ticket customer and assigned employee Users (customer and agent work lists); ticket status and priority (filtering queues); ticket creation date (sorting/reporting); and ticket-history ticket/date (chronological audit retrieval). Indexes should be created only for these expected query patterns and reviewed when real usage changes.
 
-The database must preserve references needed for ticket and history integrity. In particular, deleting an employee must not orphan historical information, and `AssignedEmployeeId` remains nullable for unassigned tickets.
+The database must preserve references needed for ticket and history integrity. In particular, deleting an Employee User must not orphan historical information, and `AssignedEmployeeUserId` remains nullable for unassigned tickets.
 
 ## Concurrency requirement
 
@@ -130,7 +143,6 @@ Ticket changes must be protected from lost updates. If two users read version 5,
 
 ## Deliberately undecided
 
-- Exact maximum lengths and formatting rules for names, title, description, phone, and comments.
-- Whether customer self-service is included in the first API release or introduced with later authentication.
+- Exact maximum lengths and formatting rules for names, title, description, and comments.
 - Exact role-to-operation permissions and who confirms a resolution.
-- Whether customers may ever be deactivated or deleted; any policy must preserve tickets and history.
+- Whether Users may ever be deactivated or deleted; any policy must preserve tickets and history.
