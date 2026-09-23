@@ -11,6 +11,7 @@ namespace ServiceDesk.WebApi.Controllers;
 [Route("api/auth")]
 public sealed class AuthenticationController(
     AuthenticateUserShell authenticateUserShell,
+    ActivateUserAccountShell activateUserAccountShell,
     JwtAccessTokenIssuer jwtAccessTokenIssuer) : ControllerBase
 {
     [AllowAnonymous]
@@ -34,6 +35,36 @@ public sealed class AuthenticationController(
             return Unauthorized(new AuthenticationFailureResponse("Authentication failed."));
         }
     }
+
+    [AllowAnonymous]
+    [HttpPost("activate")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ActivationFailureResponse>(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> Activate(
+        ActivateUserAccountHttpRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await activateUserAccountShell.ExecuteAsync(
+                new ActivateUserAccountInput(request.ActivationToken, request.Password),
+                cancellationToken);
+            return NoContent();
+        }
+        catch (PasswordPolicyException exception)
+        {
+            return BadRequest(new ProblemDetails
+            {
+                Title = "Password validation failed.",
+                Detail = exception.Failure.ToString()
+            });
+        }
+        catch (ActivateUserAccountException)
+        {
+            return BadRequest(new ActivationFailureResponse("Activation failed."));
+        }
+    }
 }
 
 public sealed record AuthenticateUserHttpRequest(
@@ -43,3 +74,9 @@ public sealed record AuthenticateUserHttpRequest(
 public sealed record AuthenticateUserResponse(string AccessToken, DateTimeOffset ExpiresAt);
 
 public sealed record AuthenticationFailureResponse(string Message);
+
+public sealed record ActivateUserAccountHttpRequest(
+    [Required] string? ActivationToken,
+    [Required] string? Password);
+
+public sealed record ActivationFailureResponse(string Message);

@@ -103,6 +103,117 @@ public sealed class UserAccessProvisionRepositoryTests : IAsyncLifetime
         result.Should().BeTrue();
     }
 
+    [Fact]
+    public async Task FindByActivationTokenHashAsync_WhenProvisionExists_ReturnsProvision()
+    {
+        // Arrange
+        var user = CreateUser();
+        var tokenHash = CreateHash(3);
+        await using var context = new ServiceDeskDbContext(options);
+        context.Users.Add(user);
+        context.UserAccessProvisions.Add(new UserAccessProvision(user.Id, tokenHash, DateTimeOffset.UtcNow.AddHours(1)));
+        await context.SaveChangesAsync();
+        var repository = new UserAccessProvisionRepository(context);
+
+        // Act
+        var provision = await repository.FindByActivationTokenHashAsync(tokenHash);
+
+        // Assert
+        provision.Should().NotBeNull();
+        provision!.UserId.Should().Be(user.Id);
+        provision.ActivationTokenHash.Should().Equal(tokenHash);
+    }
+
+    [Fact]
+    public async Task TryActivateAsync_WithEligibleProvision_CreatesCredentialAndConsumesProvision()
+    {
+        // Arrange
+        var user = CreateUser();
+        var tokenHash = CreateHash(4);
+        await using var context = new ServiceDeskDbContext(options);
+        context.Users.Add(user);
+        context.UserAccessProvisions.Add(new UserAccessProvision(user.Id, tokenHash, DateTimeOffset.UtcNow.AddHours(1)));
+        await context.SaveChangesAsync();
+        var repository = new UserAccessProvisionRepository(context);
+        var credential = new UserCredential(user.Id, "password-hash");
+
+        // Act
+        var activated = await repository.TryActivateAsync(credential, tokenHash, DateTimeOffset.UtcNow);
+        context.ChangeTracker.Clear();
+
+        // Assert
+        activated.Should().BeTrue();
+        (await context.UserCredentials.SingleAsync()).Should().Be(credential);
+        (await context.UserAccessProvisions.AnyAsync()).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task TryActivateAsync_WithExpiredProvision_PreservesProvision()
+    {
+        // Arrange
+        var user = CreateUser();
+        var tokenHash = CreateHash(5);
+        await using var context = new ServiceDeskDbContext(options);
+        context.Users.Add(user);
+        context.UserAccessProvisions.Add(new UserAccessProvision(user.Id, tokenHash, DateTimeOffset.UtcNow.AddMinutes(-1)));
+        await context.SaveChangesAsync();
+        var repository = new UserAccessProvisionRepository(context);
+
+        // Act
+        var activated = await repository.TryActivateAsync(new UserCredential(user.Id, "password-hash"), tokenHash, DateTimeOffset.UtcNow);
+        context.ChangeTracker.Clear();
+
+        // Assert
+        activated.Should().BeFalse();
+        (await context.UserCredentials.AnyAsync()).Should().BeFalse();
+        (await context.UserAccessProvisions.AnyAsync()).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task TryActivateAsync_WhenCredentialAlreadyExists_PreservesProvision()
+    {
+        // Arrange
+        var user = CreateUser();
+        var tokenHash = CreateHash(6);
+        await using var context = new ServiceDeskDbContext(options);
+        context.Users.Add(user);
+        context.UserCredentials.Add(new UserCredential(user.Id, "existing-password-hash"));
+        context.UserAccessProvisions.Add(new UserAccessProvision(user.Id, tokenHash, DateTimeOffset.UtcNow.AddHours(1)));
+        await context.SaveChangesAsync();
+        var repository = new UserAccessProvisionRepository(context);
+
+        // Act
+        var activated = await repository.TryActivateAsync(new UserCredential(user.Id, "new-password-hash"), tokenHash, DateTimeOffset.UtcNow);
+        context.ChangeTracker.Clear();
+
+        // Assert
+        activated.Should().BeFalse();
+        (await context.UserCredentials.SingleAsync()).PasswordHash.Should().Be("existing-password-hash");
+        (await context.UserAccessProvisions.AnyAsync()).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task TryActivateAsync_WhenTokenIsUsedTwice_AllowsOnlyTheFirstActivation()
+    {
+        // Arrange
+        var user = CreateUser();
+        var tokenHash = CreateHash(7);
+        await using var context = new ServiceDeskDbContext(options);
+        context.Users.Add(user);
+        context.UserAccessProvisions.Add(new UserAccessProvision(user.Id, tokenHash, DateTimeOffset.UtcNow.AddHours(1)));
+        await context.SaveChangesAsync();
+        var repository = new UserAccessProvisionRepository(context);
+        var credential = new UserCredential(user.Id, "password-hash");
+
+        // Act
+        var firstActivation = await repository.TryActivateAsync(credential, tokenHash, DateTimeOffset.UtcNow);
+        var secondActivation = await repository.TryActivateAsync(credential, tokenHash, DateTimeOffset.UtcNow);
+
+        // Assert
+        firstActivation.Should().BeTrue();
+        secondActivation.Should().BeFalse();
+    }
+
     private static User CreateUser() => new(
         Guid.NewGuid(),
         "Ada",
