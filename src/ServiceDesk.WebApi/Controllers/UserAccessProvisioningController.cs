@@ -1,9 +1,8 @@
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ServiceDesk.Core.Authentication;
 using ServiceDesk.Shell.Authentication;
+using ServiceDesk.WebApi.Authentication;
 
 namespace ServiceDesk.WebApi.Controllers;
 
@@ -23,7 +22,7 @@ public sealed class UserAccessProvisioningController(ProvisionUserAccessShell pr
         Guid userId,
         CancellationToken cancellationToken)
     {
-        if (!TryGetCallerUserId(out var callerUserId))
+        if (!AuthenticatedUserId.TryGet(User, out var callerUserId))
         {
             return Forbid();
         }
@@ -45,14 +44,6 @@ public sealed class UserAccessProvisioningController(ProvisionUserAccessShell pr
         {
             return Conflict(CreateProblemDetails(exception.Failure.ToString()));
         }
-    }
-
-    private bool TryGetCallerUserId(out Guid callerUserId)
-    {
-        var subject = User.FindFirstValue(ClaimTypes.NameIdentifier)
-            ?? User.FindFirstValue(JwtRegisteredClaimNames.Sub);
-
-        return Guid.TryParse(subject, out callerUserId);
     }
 
     private static ProblemDetails CreateProblemDetails(string detail) => new()

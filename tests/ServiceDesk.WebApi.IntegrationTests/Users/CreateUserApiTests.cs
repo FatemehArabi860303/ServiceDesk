@@ -1,44 +1,112 @@
 using System.Net;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using FluentAssertions;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.AspNetCore.TestHost;
-using Microsoft.Data.Sqlite;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using ServiceDesk.Core.Users;
 using ServiceDesk.Repository;
-using ServiceDesk.Repository.Authentication;
-using ServiceDesk.Repository.Users;
-using ServiceDesk.Shell.Authentication;
-using ServiceDesk.Shell.Users;
 using ServiceDesk.WebApi.Authentication;
-using ServiceDesk.WebApi.IntegrationTests.Authentication;
 using ServiceDesk.WebApi.Controllers;
 
 namespace ServiceDesk.WebApi.IntegrationTests.Users;
 
 public sealed class CreateUserApiTests : IClassFixture<ServiceDeskApiFactory>
 {
+    private readonly ServiceDeskApiFactory factory;
     private readonly HttpClient client;
 
     public CreateUserApiTests(ServiceDeskApiFactory factory)
     {
+        this.factory = factory;
         client = factory.CreateClient();
     }
 
     [Fact]
-    public async Task Post_WithValidUser_ReturnsCreatedUser()
+    public async Task PostWithoutJwt_ReturnsUnauthorized()
     {
         // Arrange
-        var request = new CreateUserHttpRequest(
-            "Ada", "Lovelace", "ada@example.com", UserRole.Administrator);
+        var request = CreateRequest();
+
+        // Act
+        var response = await client.PostAsJsonAsync("/api/users", request);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Theory]
+    [InlineData(UserRole.Customer)]
+    [InlineData(UserRole.Employee)]
+    public async Task PostWithNonAdministratorCaller_ReturnsForbidden(UserRole role)
+    {
+        // Arrange
+        var caller = CreateUser(role, isActive: true);
+        await SeedUserAsync(caller);
+        SetBearerToken(caller);
+        var request = CreateRequest();
+
+        // Act
+        var response = await client.PostAsJsonAsync("/api/users", request);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task PostWithInactiveAdministrator_ReturnsForbidden()
+    {
+        // Arrange
+        var caller = CreateUser(UserRole.Administrator, isActive: false);
+        await SeedUserAsync(caller);
+        SetBearerToken(caller);
+        var request = CreateRequest();
+
+        // Act
+        var response = await client.PostAsJsonAsync("/api/users", request);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task PostWithMissingPersistedCaller_ReturnsForbidden()
+    {
+        // Arrange
+        var caller = CreateUser(UserRole.Administrator, isActive: true);
+        SetBearerToken(caller);
+        var request = CreateRequest();
+
+        // Act
+        var response = await client.PostAsJsonAsync("/api/users", request);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task PostWithAdministratorJwtButPersistedCustomer_ReturnsForbidden()
+    {
+        // Arrange
+        var caller = CreateUser(UserRole.Customer, isActive: true);
+        await SeedUserAsync(caller);
+        SetBearerToken(caller with { Role = UserRole.Administrator });
+        var request = CreateRequest();
+
+        // Act
+        var response = await client.PostAsJsonAsync("/api/users", request);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task PostWithActiveAdministrator_ReturnsCreatedUser()
+    {
+        // Arrange
+        var caller = CreateUser(UserRole.Administrator, isActive: true);
+        await SeedUserAsync(caller);
+        SetBearerToken(caller);
+        var request = CreateRequest();
 
         // Act
         var response = await client.PostAsJsonAsync("/api/users", request);
@@ -48,16 +116,18 @@ public sealed class CreateUserApiTests : IClassFixture<ServiceDeskApiFactory>
         var created = await response.Content.ReadFromJsonAsync<UserResponse>();
         created.Should().NotBeNull();
         created!.Id.Should().NotBeEmpty();
-        created.Email.Should().Be("ADA@EXAMPLE.COM");
+        created.Email.Should().Be(request.Email!.ToUpperInvariant());
         created.IsActive.Should().BeTrue();
     }
 
     [Fact]
-    public async Task Post_WithInvalidData_ReturnsBadRequest()
+    public async Task PostWithActiveAdministratorAndInvalidData_ReturnsBadRequest()
     {
         // Arrange
-        var request = new CreateUserHttpRequest(
-            " ", "Lovelace", "ada@example.com", UserRole.Customer);
+        var caller = CreateUser(UserRole.Administrator, isActive: true);
+        await SeedUserAsync(caller);
+        SetBearerToken(caller);
+        var request = new CreateUserHttpRequest(" ", "Lovelace", "ada@example.com", UserRole.Customer);
 
         // Act
         var response = await client.PostAsJsonAsync("/api/users", request);
@@ -67,10 +137,13 @@ public sealed class CreateUserApiTests : IClassFixture<ServiceDeskApiFactory>
     }
 
     [Fact]
-    public async Task Post_WithDuplicateEmail_ReturnsConflict()
+    public async Task PostWithActiveAdministratorAndDuplicateEmail_ReturnsConflict()
     {
         // Arrange
-        var request = new CreateUserHttpRequest("Grace", "Hopper", "grace@example.com", UserRole.Customer);
+        var caller = CreateUser(UserRole.Administrator, isActive: true);
+        await SeedUserAsync(caller);
+        SetBearerToken(caller);
+        var request = CreateRequest();
 
         // Act
         var firstResponse = await client.PostAsJsonAsync("/api/users", request);
@@ -81,81 +154,39 @@ public sealed class CreateUserApiTests : IClassFixture<ServiceDeskApiFactory>
         response.StatusCode.Should().Be(HttpStatusCode.Conflict);
     }
 
-    [Fact]
-    public async Task Post_WithUnsupportedRole_ReturnsBadRequest()
+    private async Task SeedUserAsync(User user)
     {
-        // Arrange
-        var request = new CreateUserHttpRequest(
-            "Ada", "Lovelace", "ada@example.com", (UserRole)99);
-
-        // Act
-        var response = await client.PostAsJsonAsync("/api/users", request);
-
-        // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        using var scope = factory.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<ServiceDeskDbContext>();
+        context.Users.Add(user);
+        await context.SaveChangesAsync();
     }
-}
 
-public sealed class ServiceDeskApiFactory : WebApplicationFactory<Program>
-{
-    public const string JwtIssuer = "ServiceDesk.WebApi.IntegrationTests";
-    public const string JwtAudience = "ServiceDesk.WebApi.IntegrationTests";
-    public const string JwtSigningKey = "integration-test-signing-key-32-bytes";
-    private readonly SqliteConnection connection = new("Data Source=:memory:");
-
-    protected override void ConfigureWebHost(IWebHostBuilder builder)
+    private void SetBearerToken(User user)
     {
-        builder.UseSetting(WebHostDefaults.DetailedErrorsKey, "true");
-        builder.UseSetting(JwtConfigurationKey(nameof(JwtOptions.Issuer)), JwtIssuer);
-        builder.UseSetting(JwtConfigurationKey(nameof(JwtOptions.Audience)), JwtAudience);
-        builder.UseSetting(JwtConfigurationKey(nameof(JwtOptions.SigningKey)), JwtSigningKey);
-        builder.ConfigureLogging(logging => logging.ClearProviders());
-        builder.ConfigureAppConfiguration((_, configurationBuilder) =>
+        var issuer = new JwtAccessTokenIssuer(new JwtOptions
         {
-            configurationBuilder.AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                [JwtConfigurationKey(nameof(JwtOptions.Issuer))] = JwtIssuer,
-                [JwtConfigurationKey(nameof(JwtOptions.Audience))] = JwtAudience,
-                [JwtConfigurationKey(nameof(JwtOptions.SigningKey))] = JwtSigningKey
-            });
+            Issuer = ServiceDeskApiFactory.JwtIssuer,
+            Audience = ServiceDeskApiFactory.JwtAudience,
+            SigningKey = ServiceDeskApiFactory.JwtSigningKey
         });
-
-        builder.ConfigureTestServices(services =>
-        {
-            services.RemoveAll<IDbContextOptionsConfiguration<ServiceDeskDbContext>>();
-            services.RemoveAll<DbContextOptions<ServiceDeskDbContext>>();
-            services.RemoveAll<ServiceDeskDbContext>();
-            services.RemoveAll<IUserRepository>();
-            services.RemoveAll<IAuthenticationRepository>();
-            services.AddDbContext<ServiceDeskDbContext>(options => options.UseSqlite(connection));
-            services.AddScoped<IUserRepository, UserRepository>();
-            services.AddScoped<IAuthenticationRepository, AuthenticationRepository>();
-            services.AddControllers().AddApplicationPart(typeof(AuthenticationProbeController).Assembly);
-        });
+        var token = issuer.Issue(user, DateTimeOffset.UtcNow).Value;
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
     }
 
-    protected override IHost CreateHost(IHostBuilder builder)
-    {
-        if (connection.State != System.Data.ConnectionState.Open)
-        {
-            connection.Open();
-        }
+    private static CreateUserHttpRequest CreateRequest() => new(
+        "Ada",
+        "Lovelace",
+        $"ada-{Guid.NewGuid():N}@example.com",
+        UserRole.Customer);
 
-        var host = base.CreateHost(builder);
-        using var scope = host.Services.CreateScope();
-        scope.ServiceProvider.GetRequiredService<ServiceDeskDbContext>().Database.EnsureCreated();
-        return host;
-    }
-
-    protected override void Dispose(bool disposing)
-    {
-        if (disposing)
-        {
-            connection.Dispose();
-        }
-
-        base.Dispose(disposing);
-    }
-
-    private static string JwtConfigurationKey(string propertyName) => $"{JwtOptions.SectionName}:{propertyName}";
+    private static User CreateUser(UserRole role, bool isActive) => new(
+        Guid.NewGuid(),
+        "Ada",
+        "Lovelace",
+        $"ADA-{Guid.NewGuid():N}@EXAMPLE.COM",
+        role,
+        isActive,
+        DateTimeOffset.UtcNow,
+        DateTimeOffset.UtcNow);
 }

@@ -1,10 +1,13 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ServiceDesk.Core.Users;
 using ServiceDesk.Shell.Users;
+using ServiceDesk.WebApi.Authentication;
 
 namespace ServiceDesk.WebApi.Controllers;
 
 [ApiController]
+[Authorize]
 [Route("api/users")]
 public sealed class UsersController(CreateUserShell createUserShell) : ControllerBase
 {
@@ -12,15 +15,26 @@ public sealed class UsersController(CreateUserShell createUserShell) : Controlle
     [ProducesResponseType<UserResponse>(StatusCodes.Status201Created)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<UserResponse>> Create(
         CreateUserHttpRequest request,
         CancellationToken cancellationToken)
     {
+        if (!AuthenticatedUserId.TryGet(User, out var callerUserId))
+        {
+            return Forbid();
+        }
+
         var command = new CreateUserCommand(request.FirstName, request.LastName, request.Email, request.Role);
         try
         {
-            var user = await createUserShell.ExecuteAsync(command, cancellationToken);
+            var user = await createUserShell.ExecuteAsync(command, callerUserId, cancellationToken);
             return Created($"/api/users/{user.Id}", ToResponse(user));
+        }
+        catch (CreateUserException exception) when (exception.Failure == CreateUserFailureKind.CallerNotPermitted)
+        {
+            return Forbid();
         }
         catch (CreateUserException exception) when (exception.Failure == CreateUserFailureKind.EmailUnavailable)
         {

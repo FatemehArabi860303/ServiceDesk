@@ -94,7 +94,7 @@ public sealed class UserRepositoryTests : IAsyncLifetime
     {
         return CreateUserCore.Execute(
             new CreateUserCommand("Ada", "Lovelace", email, UserRole.Administrator),
-            new CreateUserFacts(true),
+            new CreateUserFacts(true, true),
             Guid.NewGuid(),
             new DateTimeOffset(2026, 9, 21, 12, 0, 0, TimeSpan.Zero));
     }
