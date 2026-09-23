@@ -43,6 +43,7 @@ if (!isBootstrapCommand)
 builder.Services.AddScoped<CreateUserShell>();
 builder.Services.AddScoped<BootstrapAdministratorShell>();
 builder.Services.AddScoped<AuthenticateUserShell>();
+builder.Services.AddScoped<ProvisionUserAccessShell>();
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 
 var app = builder.Build();
