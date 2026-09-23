@@ -5,6 +5,7 @@
 
 # dotenv files
 .env
+.postman/
 
 # User-specific files
 *.rsuser
