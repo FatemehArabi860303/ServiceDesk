@@ -76,7 +76,7 @@ public sealed class CreateUserCoreTests
     {
         // Arrange
         var command = new CreateUserCommand("Ada", "Lovelace", "ada@example.com", UserRole.Customer);
-        var facts = new CreateUserFacts(false);
+        var facts = new CreateUserFacts(true, false);
 
         // Act
         Action act = () => Execute(command, facts);
@@ -115,6 +115,20 @@ public sealed class CreateUserCoreTests
     }
 
     [Fact]
+    public void Execute_WhenCallerIsNotPermitted_Throws()
+    {
+        // Arrange
+        var command = new CreateUserCommand("Ada", "Lovelace", "ada@example.com", UserRole.Customer);
+        var facts = new CreateUserFacts(false, true);
+
+        // Act
+        Action act = () => Execute(command, facts);
+
+        // Assert
+        act.Should().Throw<CreateUserException>().Which.Failure.Should().Be(CreateUserFailureKind.CallerNotPermitted);
+    }
+
+    [Fact]
     public void CanonicalizeEmail_TrimsAndUsesInvariantUpperCase()
     {
         // Arrange
@@ -128,5 +142,5 @@ public sealed class CreateUserCoreTests
     }
 
     private static User Execute(CreateUserCommand command, CreateUserFacts? facts = null) =>
-        CreateUserCore.Execute(command, facts ?? new CreateUserFacts(true), UserId, Now);
+        CreateUserCore.Execute(command, facts ?? new CreateUserFacts(true, true), UserId, Now);
 }

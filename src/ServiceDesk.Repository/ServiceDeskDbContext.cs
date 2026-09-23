@@ -15,6 +15,8 @@ public sealed class ServiceDeskDbContext(DbContextOptions<ServiceDeskDbContext> 
 
     public DbSet<UserCredential> UserCredentials => Set<UserCredential>();
 
+    public DbSet<UserAccessProvision> UserAccessProvisions => Set<UserAccessProvision>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(ServiceDeskDbContext).Assembly);

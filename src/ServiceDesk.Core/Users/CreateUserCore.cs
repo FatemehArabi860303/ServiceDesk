@@ -15,6 +15,11 @@ public static class CreateUserCore
         ArgumentNullException.ThrowIfNull(command);
         ArgumentNullException.ThrowIfNull(facts);
 
+        if (!facts.CallerPermitted)
+        {
+            throw new CreateUserException(CreateUserFailureKind.CallerNotPermitted);
+        }
+
         if (!UserRules.IsValidName(command.FirstName, FirstNameMaxLength))
         {
             throw new CreateUserException(CreateUserFailureKind.InvalidFirstName);

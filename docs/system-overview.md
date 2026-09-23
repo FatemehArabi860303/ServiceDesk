@@ -97,9 +97,13 @@ ServiceDesk will use self-issued JWT bearer authentication. A separate `UserCred
 
 Passwords are a single authentication factor. They must contain 15 to 128 Unicode code points, may contain Unicode and spaces, are normalized to NFC before hashing and verification, and are neither trimmed nor silently truncated. No character-composition rule or periodic expiration applies.
 
-Initial installation requires an explicit deployment/setup seed operation, not automatic startup behavior. On an empty installation only, it creates the first Administrator User and credential using protected deployment configuration or secrets. Later, an authenticated active Administrator may initialize a credential for an existing active User that has no credential. Credential initialization does not replace an existing credential or modify the User's identity, profile, or role.
+Initial installation requires an explicit deployment/setup seed operation, not automatic startup behavior. On an empty installation only, it creates the first Administrator User and credential using protected deployment configuration or secrets. This is an installation exception: normal Users do not receive credentials when they are created.
 
-The operational sequence is: explicitly seed the first Administrator, authenticate that Administrator, provision credentials for existing Users, authenticate those Users, then allow protected operations such as customer ticket submission. This setup behavior is not a public product endpoint.
+For normal Users, an authenticated active Administrator provisions access for an existing active User without a credential through `POST /api/users/{userId}/access-provisioning`. Provisioning produces a cryptographically secure one-time activation token that expires exactly 24 hours after provisioning. The raw token is returned only at provisioning time and must be delivered to the User out-of-band; only a non-recoverable representation is persisted. The Administrator never chooses or knows the User's permanent password. An Administrator may re-provision an active User who still has no credential; the replacement immediately invalidates the previous pending token.
+
+The User activates their account without an existing JWT by supplying the activation token and a password they choose. Activation validates the pending token and User eligibility, applies the password policy, creates the UserCredential, and consumes the token atomically.
+
+The operational sequence is: explicitly seed the first Administrator, authenticate that Administrator, create a User, provision that User's access, deliver the one-time activation token out-of-band, activate the account, authenticate the User, then allow protected operations such as customer ticket submission. This setup behavior is not a public product endpoint.
 
 ## Scope boundaries
 
