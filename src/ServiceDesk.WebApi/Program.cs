@@ -5,6 +5,7 @@ using Microsoft.IdentityModel.Tokens;
 using ServiceDesk.Core.Users;
 using ServiceDesk.Repository;
 using ServiceDesk.Shell.Authentication;
+using ServiceDesk.Shell.Tickets;
 using ServiceDesk.Shell.Users;
 using ServiceDesk.WebApi.Authentication;
 using ServiceDesk.WebApi.Bootstrap;
@@ -45,6 +46,7 @@ builder.Services.AddScoped<BootstrapAdministratorShell>();
 builder.Services.AddScoped<AuthenticateUserShell>();
 builder.Services.AddScoped<ProvisionUserAccessShell>();
 builder.Services.AddScoped<ActivateUserAccountShell>();
+builder.Services.AddScoped<CreateTicketShell>();
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 
 var app = builder.Build();

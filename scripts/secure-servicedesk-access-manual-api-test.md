@@ -195,6 +195,53 @@ Example response:
 
 ------------------------------------------------------------------------
 
+## 6. Submit a New Service Request
+
+**Method:** `POST`
+
+**Endpoint:**
+
+``` text
+http://localhost:5011/api/tickets
+```
+
+**Authorization:** Bearer Token
+
+Use the Customer access token returned by the **Customer Login** step:
+
+``` text
+<CUSTOMER_ACCESS_TOKEN>
+```
+
+Do **not** use the Administrator JWT for this request.
+
+**Body → raw → JSON:**
+
+``` json
+{
+  "title": "Cannot access VPN",
+  "description": "The VPN rejects my credentials.",
+  "priority": 2
+}
+```
+
+Do **not** supply `CustomerUserId`. The API obtains it from the authenticated
+JWT subject and verifies that the persisted User is still an active Customer.
+
+**Expected response:** `201 Created`
+
+Relevant authorization and validation behavior:
+
+- No, invalid, or expired JWT → `401 Unauthorized`
+- Active authorized Customer → `201 Created`
+- Employee → `403 Forbidden`
+- Administrator → `403 Forbidden`
+- Inactive Customer → `403 Forbidden`
+- Caller no longer represented by a valid persisted Customer → `403 Forbidden`
+- Invalid ticket input → `400 Bad Request`
+
+------------------------------------------------------------------------
+
 ## Complete Access Flow
 
 ``` text
@@ -209,7 +256,18 @@ Provision Customer Access
 Customer Activates Account
         ↓
 Customer Login
+        ↓
+Customer Submits Service Request
 ```
 
-A successful Customer login confirms that the complete manual access
-flow is working.
+Successful completion proves that:
+
+1. Administrator authentication works.
+2. An Administrator can create a Customer.
+3. An Administrator can provision Customer access.
+4. A Customer can activate their account.
+5. A Customer can authenticate.
+6. An authenticated and currently authorized Customer can submit a service
+   request.
+7. Ticket ownership is derived from authenticated identity rather than a
+   client-controlled `CustomerUserId`.
