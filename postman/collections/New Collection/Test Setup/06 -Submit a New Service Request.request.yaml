@@ -1,0 +1,16 @@
+$kind: http-request
+url: |
+  http://localhost:5011/api/tickets
+method: POST
+body:
+  type: json
+  content: "{\r
+
+    \  \"title\": \"Cannot access VPN\",\r
+
+    \  \"description\": \"The VPN rejects my credentials.\",\r
+
+    \  \"priority\": 2\r
+
+    }"
+order: 4419193494239758

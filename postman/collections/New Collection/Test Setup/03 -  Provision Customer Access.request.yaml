@@ -1,0 +1,4 @@
+$kind: http-request
+url: http://localhost:5011/api/users/<CUSTOMER_ID>/access-provisioning
+method: POST
+order: 3648716987695483
