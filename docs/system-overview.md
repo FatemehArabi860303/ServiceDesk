@@ -14,7 +14,7 @@ A customer is a User whose role is `Customer` and who needs IT support. A custom
 
 ### Employee / support agent
 
-An employee is a User whose role is `Employee`. An employee handles support requests, including self-assigning available requests, assigned work, lifecycle updates, priority changes, and comments/history.
+An employee is a User whose role is `Employee`. An employee handles support requests, including retrieving service requests, self-assigning available requests, assigned work, lifecycle updates, priority changes, and comments/history.
 
 ### Administrator
 

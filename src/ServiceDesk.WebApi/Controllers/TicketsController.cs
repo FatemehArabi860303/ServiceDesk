@@ -13,8 +13,20 @@ namespace ServiceDesk.WebApi.Controllers;
 [Route("api/tickets")]
 public sealed class TicketsController(
     CreateTicketShell createTicketShell,
-    AssignTicketShell assignTicketShell) : ControllerBase
+    AssignTicketShell assignTicketShell,
+    GetAllTicketsShell getAllTicketsShell) : ControllerBase
 {
+    [HttpGet]
+    [Authorize(Roles = nameof(UserRole.Employee) + "," + nameof(UserRole.Administrator))]
+    [ProducesResponseType<IReadOnlyList<TicketListItemResponse>>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<IReadOnlyList<TicketListItemResponse>>> GetAll(CancellationToken cancellationToken)
+    {
+        var tickets = await getAllTicketsShell.ExecuteAsync(cancellationToken);
+        return Ok(tickets.Select(ToListItemResponse).ToArray());
+    }
+
     [HttpPost]
     [ProducesResponseType<TicketResponse>(StatusCodes.Status201Created)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
@@ -88,6 +100,17 @@ public sealed class TicketsController(
         ticket.CreatedAt,
         ticket.UpdatedAt);
 
+    private static TicketListItemResponse ToListItemResponse(TicketListItem ticket) => new(
+        ticket.Id,
+        ticket.CustomerEmail,
+        ticket.AssignedEmployeeEmail,
+        ticket.Title,
+        ticket.Description,
+        ticket.Priority,
+        ticket.Status,
+        ticket.CreatedAt,
+        ticket.UpdatedAt);
+
     private static ProblemDetails CreateAssignmentProblemDetails(string detail) => new()
     {
         Title = "Ticket assignment was rejected.",
@@ -103,6 +126,17 @@ public sealed record CreateTicketHttpRequest(
 public sealed record TicketResponse(
     Guid Id,
     Guid CustomerUserId,
+    string Title,
+    string Description,
+    TicketPriority Priority,
+    TicketStatus Status,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset UpdatedAt);
+
+public sealed record TicketListItemResponse(
+    Guid Id,
+    string CustomerEmail,
+    string? AssignedEmployeeEmail,
     string Title,
     string Description,
     TicketPriority Priority,
