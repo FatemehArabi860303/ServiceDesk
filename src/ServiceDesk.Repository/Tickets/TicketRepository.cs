@@ -45,4 +45,32 @@ public sealed class TicketRepository(ServiceDeskDbContext dbContext) : ITicketRe
         await transaction.CommitAsync(cancellationToken);
         return true;
     }
+
+    public async Task<bool> TryStartWorkAsync(
+        Ticket ticket,
+        Guid workStartedHistoryId,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(ticket);
+
+        var workStartedHistory = ticket.History.Single(history => history.Id == workStartedHistoryId);
+        await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
+        var rowsAffected = await dbContext.Tickets
+            .Where(storedTicket => storedTicket.Id == ticket.Id
+                && storedTicket.Status == TicketStatus.Open
+                && storedTicket.AssignedEmployeeUserId == ticket.AssignedEmployeeUserId)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(storedTicket => storedTicket.Status, ticket.Status)
+                .SetProperty(storedTicket => storedTicket.UpdatedAt, ticket.UpdatedAt), cancellationToken);
+
+        if (rowsAffected != 1)
+        {
+            return false;
+        }
+
+        dbContext.TicketHistories.Add(workStartedHistory);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return true;
+    }
 }

@@ -72,4 +72,31 @@ public sealed class Ticket
             now,
             employeeUserId));
     }
+
+    internal void StartWork(Guid employeeUserId, Guid workStartedHistoryId, DateTimeOffset now)
+    {
+        if (Status != TicketStatus.Open)
+        {
+            throw new StartWorkException(StartWorkFailureKind.TicketNotOpen);
+        }
+
+        if (AssignedEmployeeUserId is null)
+        {
+            throw new StartWorkException(StartWorkFailureKind.TicketUnassigned);
+        }
+
+        if (AssignedEmployeeUserId != employeeUserId)
+        {
+            throw new StartWorkException(StartWorkFailureKind.TicketAssignedToAnotherEmployee);
+        }
+
+        Status = TicketStatus.InProgress;
+        UpdatedAt = now;
+        history.Add(new TicketHistory(
+            workStartedHistoryId,
+            Id,
+            employeeUserId,
+            TicketHistoryAction.WorkStarted,
+            now));
+    }
 }
