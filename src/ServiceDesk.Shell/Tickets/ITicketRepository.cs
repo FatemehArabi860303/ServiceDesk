@@ -8,6 +8,8 @@ public interface ITicketRepository
 
     Task<Ticket?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<TicketListItem>> GetAllAsync(CancellationToken cancellationToken = default);
+
     Task<bool> TryAssignAsync(
         Ticket ticket,
         Guid assignmentHistoryId,

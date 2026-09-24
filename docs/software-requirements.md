@@ -40,7 +40,7 @@ Customer, Employee, and Administrator are User roles, not separate identity enti
 | FR-005 | A User with the `Employee` role shall be eligible to handle service requests. |
 | FR-006 | The system shall later retrieve tickets assigned to an Employee User, including tickets retained for an employee who later becomes inactive. |
 
-Until future Feature/category eligibility is configured, an authenticated Employee may later view all available unassigned tickets and use visible information such as Priority to choose a request. This visibility capability is separate from self-assignment.
+Until future Feature/category eligibility is configured, an authenticated Employee may use the complete ticket list to identify available unassigned tickets and use visible information such as Priority to choose a request. An available-ticket view and filtering remain separate from baseline retrieval.
 
 ### Ticket management
 
@@ -48,7 +48,7 @@ Until future Feature/category eligibility is configured, an authenticated Employ
 |---|---|
 | FR-010 | The system shall create a ticket for exactly one existing Customer User, with required title, description, and valid priority. New tickets start `Open` and may be unassigned. |
 | FR-011 | The system shall retrieve a ticket and its current details. |
-| FR-012 | The system shall list tickets and support practical filtering/searching by Customer User, assigned Employee User, status, priority, and text; results shall be pageable. |
+| FR-012 | An authenticated Employee or Administrator shall retrieve all tickets. Filtering/searching by Customer User, assigned Employee User, status, priority, and text, together with pagination and other list refinements, is deferred to separate work. |
 | FR-013 | The system shall update permitted ticket information, including title and description, without changing its Customer User ownership. |
 | FR-014 | The system shall change a ticket priority to a valid defined value and record the change. |
 | FR-015 | An authenticated Employee shall self-assign an `Open`, unassigned ticket to the Employee User identified by the authenticated access token. The operation shall record the assignment, update the ticket timestamp, and not change ticket status. |

@@ -91,7 +91,7 @@ Password replacement/change, password reset, invitation email, email verificatio
 
 ## Authorization boundary
 
-The business rules describe what is allowed for valid records. Authentication credentials, tokens, password storage, hashing, and JWT mechanics are not Functional Core concepts. User management is separate from authentication. A valid Employee access token authorizes Employee self-assignment and starting work for its four-hour lifetime without a persisted User role or active-state recheck. Future authorization determines which authenticated User may invoke other operations; it must enforce these business rules rather than replace them.
+The business rules describe what is allowed for valid records. Authentication credentials, tokens, password storage, hashing, and JWT mechanics are not Functional Core concepts. User management is separate from authentication. A valid Employee or Administrator access token authorizes baseline ticket retrieval for its four-hour lifetime without a persisted User role or active-state recheck. A valid Employee access token authorizes Employee self-assignment and starting work for its four-hour lifetime without a persisted User role or active-state recheck. Future authorization determines which authenticated User may invoke other operations; it must enforce these business rules rather than replace them.
 
 ## Future ServiceDesk settings
 

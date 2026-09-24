@@ -49,6 +49,7 @@ builder.Services.AddScoped<ActivateUserAccountShell>();
 builder.Services.AddScoped<CreateTicketShell>();
 builder.Services.AddScoped<AssignTicketShell>();
 builder.Services.AddScoped<StartWorkShell>();
+builder.Services.AddScoped<GetAllTicketsShell>();
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 
 var app = builder.Build();
