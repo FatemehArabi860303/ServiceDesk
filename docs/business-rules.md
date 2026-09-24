@@ -16,7 +16,7 @@
 | BR-010 | Closing a ticket is valid only from `Resolved`; it changes status to `Closed`, sets `ClosedAt`, updates `UpdatedAt`, and creates history. |
 | BR-011 | Reopening is valid only from `Closed`; it changes status to `InProgress`, clears `ClosedAt`, updates `UpdatedAt`, and creates reopening history. |
 | BR-012 | Returning to work is valid only from `Resolved`; it changes status to `InProgress`, keeps `ClosedAt` null, and creates history. |
-| BR-013 | Starting work is valid only from `Open`; it changes status to `InProgress` and creates history. |
+| BR-013 | Starting work is valid only when an `Open` ticket is assigned to the authenticated Employee. It changes status to `InProgress`, preserves the assignment, updates `UpdatedAt`, and creates history. |
 | BR-014 | Resolving is valid only from `InProgress`; it changes status to `Resolved` and creates history. |
 | BR-015 | Invalid transitions—including `Open → Closed`, `Open → Resolved`, `Resolved → Open`, `Closed → Resolved`, and `Closed → Open`—must be rejected without changing ticket state or history. |
 
@@ -76,7 +76,7 @@ Password replacement/change, password reset, invitation email, email verificatio
 | BR-025 | Every history entry belongs to exactly one ticket. |
 | BR-026 | History is append-only: a stored entry is not normally edited or deleted. |
 | BR-027 | A history entry records the ticket, `ActorUserId`, occurrence time, action type, and relevant change information. An assignment entry also records `AssignedEmployeeUserId`. |
-| BR-028 | Ticket creation, self-assignment, future reassignment, priority change, status change, comment addition, title change, description change, closure, and reopening must create history. Ticket creation records `ActorUserId` equal to `CustomerUserId`; self-assignment records the authenticated Employee as both `ActorUserId` and `AssignedEmployeeUserId`. |
+| BR-028 | Ticket creation, self-assignment, starting work, future reassignment, priority change, status change, comment addition, title change, description change, closure, and reopening must create history. Ticket creation records `ActorUserId` equal to `CustomerUserId`; self-assignment records the authenticated Employee as both `ActorUserId` and `AssignedEmployeeUserId`; starting work records the authenticated Employee as `ActorUserId`. |
 | BR-029 | A comment is represented as a history entry attributable to the User who added it. |
 | BR-030 | A rejected operation creates no history entry. |
 
@@ -91,7 +91,7 @@ Password replacement/change, password reset, invitation email, email verificatio
 
 ## Authorization boundary
 
-The business rules describe what is allowed for valid records. Authentication credentials, tokens, password storage, hashing, and JWT mechanics are not Functional Core concepts. User management is separate from authentication. A valid Employee or Administrator access token authorizes baseline ticket retrieval for its four-hour lifetime without a persisted User role or active-state recheck. A valid Employee access token authorizes Employee self-assignment for its four-hour lifetime without a persisted User role or active-state recheck. Future authorization determines which authenticated User may invoke other operations; it must enforce these business rules rather than replace them.
+The business rules describe what is allowed for valid records. Authentication credentials, tokens, password storage, hashing, and JWT mechanics are not Functional Core concepts. User management is separate from authentication. A valid Employee or Administrator access token authorizes baseline ticket retrieval for its four-hour lifetime without a persisted User role or active-state recheck. A valid Employee access token authorizes Employee self-assignment and starting work for its four-hour lifetime without a persisted User role or active-state recheck. Future authorization determines which authenticated User may invoke other operations; it must enforce these business rules rather than replace them.
 
 ## Future ServiceDesk settings
 

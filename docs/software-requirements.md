@@ -61,6 +61,7 @@ Until future Feature/category eligibility is configured, an authenticated Employ
 | FR-022 | The system shall return a `Resolved` ticket to `InProgress` when more work is needed. |
 | FR-023 | The system shall reopen a `Closed` ticket to `InProgress`, clear `ClosedAt`, and record reopening. |
 | FR-024 | The system shall reject invalid status transitions without changing the ticket or creating history. |
+| FR-025 | An authenticated Employee assigned to an `Open` ticket shall start work on that ticket. The operation shall change the status to `InProgress`, preserve the assignment, update the ticket timestamp, and record work-started history. |
 
 ### ServiceDesk settings
 

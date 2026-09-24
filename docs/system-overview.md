@@ -70,12 +70,12 @@ A future ticket conceptually contains `CustomerUserId`, optional `AssignedEmploy
 - `AssignedEmployeeUserId`, `Status`, `Priority`, `Title`, and `Description` may change through defined business operations. For self-assignment, `AssignedEmployeeUserId` identifies the User authorized by the Employee role in the access token; the relationship remains valid if that User's persisted role later changes.
 - `UpdatedAt` changes when mutable ticket information, assignment, priority, status, or a comment changes.
 - `ClosedAt` is `null` unless status is `Closed`; it is set on closing and cleared only by reopening.
-- A ticket may begin unassigned. An authenticated Employee may self-assign only an `Open`, unassigned ticket; assignment does not change status. Reassignment is separate future work.
+- A ticket may begin unassigned. An authenticated Employee may self-assign only an `Open`, unassigned ticket; assignment does not change status. The assigned Employee may then start work only while the ticket remains `Open`, changing it to `InProgress` without changing the assignment. Reassignment is separate future work.
 - Title and description are required; status and priority must be values from their defined sets.
 
 ## Ticket history
 
-History is an append-only audit trail, not a second editable ticket description. A future record identifies the ticket, `ActorUserId`, occurrence time, action type, and a concise account of what changed. Assignment history also records `AssignedEmployeeUserId`. For ticket creation, `ActorUserId` equals `CustomerUserId`; for self-assignment, `ActorUserId` and `AssignedEmployeeUserId` are the same Employee User.
+History is an append-only audit trail, not a second editable ticket description. A future record identifies the ticket, `ActorUserId`, occurrence time, action type, and a concise account of what changed. Assignment history also records `AssignedEmployeeUserId`. For ticket creation, `ActorUserId` equals `CustomerUserId`; for self-assignment, `ActorUserId` and `AssignedEmployeeUserId` are the same Employee User; for starting work, `ActorUserId` is the assigned Employee User.
 
 Comments are represented as history entries with their author and comment text. The following operations must create history: ticket creation, assignment/reassignment, priority change, status change, adding a comment, title change, description change, closing, and reopening. Existing history is not normally edited or deleted.
 

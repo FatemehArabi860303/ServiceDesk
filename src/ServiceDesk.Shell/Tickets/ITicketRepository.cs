@@ -14,4 +14,9 @@ public interface ITicketRepository
         Ticket ticket,
         Guid assignmentHistoryId,
         CancellationToken cancellationToken = default);
+
+    Task<bool> TryStartWorkAsync(
+        Ticket ticket,
+        Guid workStartedHistoryId,
+        CancellationToken cancellationToken = default);
 }

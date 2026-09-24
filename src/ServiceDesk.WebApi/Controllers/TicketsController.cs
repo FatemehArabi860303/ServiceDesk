@@ -14,6 +14,7 @@ namespace ServiceDesk.WebApi.Controllers;
 public sealed class TicketsController(
     CreateTicketShell createTicketShell,
     AssignTicketShell assignTicketShell,
+    StartWorkShell startWorkShell,
     GetAllTicketsShell getAllTicketsShell) : ControllerBase
 {
     [HttpGet]
@@ -90,6 +91,39 @@ public sealed class TicketsController(
         }
     }
 
+    [HttpPost("{ticketId:guid}/start-work")]
+    [Authorize(Roles = nameof(UserRole.Employee))]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> StartWork(Guid ticketId, CancellationToken cancellationToken)
+    {
+        if (!AuthenticatedUserId.TryGet(User, out var employeeUserId))
+        {
+            return Forbid();
+        }
+
+        try
+        {
+            await startWorkShell.ExecuteAsync(ticketId, employeeUserId, cancellationToken);
+            return NoContent();
+        }
+        catch (StartWorkException exception) when (exception.Failure == StartWorkFailureKind.TicketNotFound)
+        {
+            return NotFound(CreateStartWorkProblemDetails("Ticket was not found."));
+        }
+        catch (StartWorkException exception) when (exception.Failure == StartWorkFailureKind.TicketAssignedToAnotherEmployee)
+        {
+            return Forbid();
+        }
+        catch (StartWorkException exception)
+        {
+            return Conflict(CreateStartWorkProblemDetails(exception.Failure.ToString()));
+        }
+    }
+
     private static TicketResponse ToResponse(Ticket ticket) => new(
         ticket.Id,
         ticket.CustomerUserId,
@@ -114,6 +148,12 @@ public sealed class TicketsController(
     private static ProblemDetails CreateAssignmentProblemDetails(string detail) => new()
     {
         Title = "Ticket assignment was rejected.",
+        Detail = detail
+    };
+
+    private static ProblemDetails CreateStartWorkProblemDetails(string detail) => new()
+    {
+        Title = "Starting ticket work was rejected.",
         Detail = detail
     };
 }
