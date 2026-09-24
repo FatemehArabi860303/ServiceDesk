@@ -34,6 +34,8 @@ public sealed class Ticket
 
     public Guid CustomerUserId { get; private set; }
 
+    public Guid? AssignedEmployeeUserId { get; private set; }
+
     public string Title { get; private set; } = null!;
 
     public string Description { get; private set; } = null!;
@@ -47,4 +49,27 @@ public sealed class Ticket
     public DateTimeOffset UpdatedAt { get; private set; }
 
     public IReadOnlyList<TicketHistory> History => history.AsReadOnly();
+
+    internal void Assign(Guid employeeUserId, Guid assignmentHistoryId, DateTimeOffset now)
+    {
+        if (Status != TicketStatus.Open)
+        {
+            throw new AssignTicketException(AssignTicketFailureKind.TicketNotOpen);
+        }
+
+        if (AssignedEmployeeUserId is not null)
+        {
+            throw new AssignTicketException(AssignTicketFailureKind.TicketAlreadyAssigned);
+        }
+
+        AssignedEmployeeUserId = employeeUserId;
+        UpdatedAt = now;
+        history.Add(new TicketHistory(
+            assignmentHistoryId,
+            Id,
+            employeeUserId,
+            TicketHistoryAction.Assigned,
+            now,
+            employeeUserId));
+    }
 }

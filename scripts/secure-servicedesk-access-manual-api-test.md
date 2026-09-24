@@ -271,3 +271,37 @@ Successful completion proves that:
    request.
 7. Ticket ownership is derived from authenticated identity rather than a
    client-controlled `CustomerUserId`.
+
+
+
+Yes. Before merging the PR, a **manual Postman smoke test** is a good final check.
+
+For this feature, we mainly want to prove this real flow:
+
+```text
+Employee login
+     ↓
+Get Employee JWT
+     ↓
+Find/use an Open + unassigned Ticket
+     ↓
+POST /api/tickets/{ticketId}/assignment
+     ↓
+204 No Content
+     ↓
+Try same Ticket again
+     ↓
+409 Conflict
+```
+
+
+**Assign a request**
+
+Then log in as the Employee and copy the Employee JWT.
+
+Now test the actual PR:
+
+```http
+POST http://localhost:5011/api/tickets/{TICKET_ID}/assignment
+Authorization: Bearer <EMPLOYEE_TOKEN>
+```

@@ -1,0 +1,30 @@
+$kind: http-request
+method: POST
+url: 'http://localhost:5011/api/auth/login'
+order: 1000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {"email":"some email","password":"******"}
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status code is 200", function () {
+        pm.response.to.have.status(200);
+      });
+
+      const response = pm.response.json();
+
+      pm.test("accessToken exists", function () {
+        pm.expect(response.accessToken).to.exist;
+      });
+
+      pm.test("expiresAt exists", function () {
+        pm.expect(response.expiresAt).to.exist;
+      });
+
+      pm.collectionVariables.set("administratorToken", response.accessToken);

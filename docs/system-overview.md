@@ -14,11 +14,11 @@ A customer is a User whose role is `Customer` and who needs IT support. A custom
 
 ### Employee / support agent
 
-An employee is a User whose role is `Employee`. An employee handles support requests, including assigned work, lifecycle updates, priority changes, and comments/history.
+An employee is a User whose role is `Employee`. An employee handles support requests, including self-assigning available requests, assigned work, lifecycle updates, priority changes, and comments/history.
 
 ### Administrator
 
-An administrator is a User whose role is `Administrator`. An administrator manages Users and ServiceDesk settings, assigns or reassigns requests, and can access requests and their history. Administrator access does not bypass ticket lifecycle rules.
+An administrator is a User whose role is `Administrator`. An administrator manages Users and ServiceDesk settings, and can access requests and their history. Administrator access does not bypass ticket lifecycle rules.
 
 No other actor is part of version one.
 
@@ -52,7 +52,7 @@ Closed ───────────────────→ InProgress
 | From | To | Business operation | Result |
 |---|---|---|---|
 | — | Open | Create ticket | A new ticket starts Open. |
-| Open | InProgress | Start work / take ownership | Work has begun. |
+| Open | InProgress | Start work | Work has begun. |
 | InProgress | Resolved | Resolve ticket | Agent reports the issue resolved. |
 | Resolved | Closed | Close ticket | Resolution is confirmed; `ClosedAt` is set. |
 | Resolved | InProgress | Return to work | Resolution did not solve the issue. |
@@ -67,15 +67,15 @@ Every successful status operation creates a history record. Closing creates a **
 A future ticket conceptually contains `CustomerUserId`, optional `AssignedEmployeeUserId`, status, priority, title, description, creation/update/closure times, and history.
 
 - `CustomerUserId`, `CreatedAt`, and the ticket identity are immutable after creation. `CustomerUserId` must reference a User with the `Customer` role.
-- `AssignedEmployeeUserId`, `Status`, `Priority`, `Title`, and `Description` may change through defined business operations. When assigned, `AssignedEmployeeUserId` must reference a User with the `Employee` role.
+- `AssignedEmployeeUserId`, `Status`, `Priority`, `Title`, and `Description` may change through defined business operations. For self-assignment, `AssignedEmployeeUserId` identifies the User authorized by the Employee role in the access token; the relationship remains valid if that User's persisted role later changes.
 - `UpdatedAt` changes when mutable ticket information, assignment, priority, status, or a comment changes.
 - `ClosedAt` is `null` unless status is `Closed`; it is set on closing and cleared only by reopening.
-- A ticket may begin unassigned. It may later be assigned or reassigned only to an active employee.
+- A ticket may begin unassigned. An authenticated Employee may self-assign only an `Open`, unassigned ticket; assignment does not change status. Reassignment is separate future work.
 - Title and description are required; status and priority must be values from their defined sets.
 
 ## Ticket history
 
-History is an append-only audit trail, not a second editable ticket description. A future record identifies the ticket, `ActorUserId`, occurrence time, action type, and a concise account of what changed. For ticket creation, `ActorUserId` equals `CustomerUserId`.
+History is an append-only audit trail, not a second editable ticket description. A future record identifies the ticket, `ActorUserId`, occurrence time, action type, and a concise account of what changed. Assignment history also records `AssignedEmployeeUserId`. For ticket creation, `ActorUserId` equals `CustomerUserId`; for self-assignment, `ActorUserId` and `AssignedEmployeeUserId` are the same Employee User.
 
 Comments are represented as history entries with their author and comment text. The following operations must create history: ticket creation, assignment/reassignment, priority change, status change, adding a comment, title change, description change, closing, and reopening. Existing history is not normally edited or deleted.
 
@@ -83,7 +83,7 @@ Comments are represented as history entries with their author and comment text. 
 
 A customer User owns many tickets, while every ticket has exactly one customer User. Moving an existing ticket to a different customer User is not a normal supported operation.
 
-An employee User may be assigned to tickets. Inactive employee Users cannot receive new assignments, but historical and existing ticket references remain valid. Employee Users are deactivated rather than physically deleted when deletion would damage historical information.
+An employee User may be assigned to tickets. A User must be active to authenticate and receive a new access token. A valid Employee access token remains authoritative until its four-hour expiration, even if the persisted User role or active state changes after issuance. Historical and existing ticket references remain valid. Employee Users are deactivated rather than physically deleted when deletion would damage historical information.
 
 ## ServiceDesk settings
 
@@ -93,7 +93,7 @@ ServiceDesk settings will include a future configurable hierarchical concept nam
 
 User management is separate from authentication. A User remains the authoritative business participant identity and owns one fixed role, but credentials are not part of the Functional Core User model. Authentication uses the User's unique email as its login identifier and immutable User identity as the authenticated identity.
 
-ServiceDesk will use self-issued JWT bearer authentication. A separate `UserCredential` record associates a User with only `UserId` and `PasswordHash`. Passwords are never stored in plaintext. JWTs, password hashing, credential persistence, login, and authentication middleware remain outside the Functional Core.
+ServiceDesk will use self-issued JWT bearer authentication. A separate `UserCredential` record associates a User with only `UserId` and `PasswordHash`. Passwords are never stored in plaintext. JWTs, password hashing, credential persistence, login, and authentication middleware remain outside the Functional Core. A successful login issues a four-hour access token containing immutable User identity and role. For the simplified initial security model, that valid token is authoritative until expiration; protected operations do not reload the persisted User solely to re-check role or active state. Token revocation, refresh tokens, and session storage are deferred.
 
 Passwords are a single authentication factor. They must contain 15 to 128 Unicode code points, may contain Unicode and spaces, are normalized to NFC before hashing and verification, and are neither trimmed nor silently truncated. No character-composition rule or periodic expiration applies.
 
@@ -114,5 +114,5 @@ Version one excludes email/SMS notifications, attachments, SLA management, escal
 1. The system serves one organisation; multi-tenancy is out of scope.
 2. User email addresses are unique system-wide.
 3. Assignment does not itself force a status change; starting work is explicit.
-4. Detailed authorization policies beyond approved authentication and credential provisioning, including who may close or confirm a ticket resolution, remain to be defined.
+4. Detailed authorization policies beyond Employee self-assignment and approved authentication and credential provisioning, including who may reassign, close, or confirm a ticket resolution, remain to be defined.
 5. No deletion policy for Users is fixed yet; it must preserve ticket integrity and history.

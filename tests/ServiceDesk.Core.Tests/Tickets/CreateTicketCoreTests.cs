@@ -22,6 +22,7 @@ public sealed class CreateTicketCoreTests
         // Assert
         ticket.Id.Should().Be(TicketId);
         ticket.CustomerUserId.Should().Be(CustomerUserId);
+        ticket.AssignedEmployeeUserId.Should().BeNull();
         ticket.Title.Should().Be(command.Title);
         ticket.Description.Should().Be(command.Description);
         ticket.Priority.Should().Be(TicketPriority.High);

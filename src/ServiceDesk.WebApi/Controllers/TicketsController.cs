@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ServiceDesk.Core.Tickets;
+using ServiceDesk.Core.Users;
 using ServiceDesk.Shell.Tickets;
 using ServiceDesk.WebApi.Authentication;
 
@@ -10,7 +11,9 @@ namespace ServiceDesk.WebApi.Controllers;
 [ApiController]
 [Authorize]
 [Route("api/tickets")]
-public sealed class TicketsController(CreateTicketShell createTicketShell) : ControllerBase
+public sealed class TicketsController(
+    CreateTicketShell createTicketShell,
+    AssignTicketShell assignTicketShell) : ControllerBase
 {
     [HttpPost]
     [ProducesResponseType<TicketResponse>(StatusCodes.Status201Created)]
@@ -46,6 +49,35 @@ public sealed class TicketsController(CreateTicketShell createTicketShell) : Con
         }
     }
 
+    [HttpPost("{ticketId:guid}/assignment")]
+    [Authorize(Roles = nameof(UserRole.Employee))]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> Assign(Guid ticketId, CancellationToken cancellationToken)
+    {
+        if (!AuthenticatedUserId.TryGet(User, out var employeeUserId))
+        {
+            return Forbid();
+        }
+
+        try
+        {
+            await assignTicketShell.ExecuteAsync(ticketId, employeeUserId, cancellationToken);
+            return NoContent();
+        }
+        catch (AssignTicketException exception) when (exception.Failure == AssignTicketFailureKind.TicketNotFound)
+        {
+            return NotFound(CreateAssignmentProblemDetails("Ticket was not found."));
+        }
+        catch (AssignTicketException exception)
+        {
+            return Conflict(CreateAssignmentProblemDetails(exception.Failure.ToString()));
+        }
+    }
+
     private static TicketResponse ToResponse(Ticket ticket) => new(
         ticket.Id,
         ticket.CustomerUserId,
@@ -55,6 +87,12 @@ public sealed class TicketsController(CreateTicketShell createTicketShell) : Con
         ticket.Status,
         ticket.CreatedAt,
         ticket.UpdatedAt);
+
+    private static ProblemDetails CreateAssignmentProblemDetails(string detail) => new()
+    {
+        Title = "Ticket assignment was rejected.",
+        Detail = detail
+    };
 }
 
 public sealed record CreateTicketHttpRequest(

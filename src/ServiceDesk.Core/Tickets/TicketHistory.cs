@@ -5,4 +5,5 @@ public sealed record TicketHistory(
     Guid TicketId,
     Guid ActorUserId,
     TicketHistoryAction Action,
-    DateTimeOffset OccurredAt);
+    DateTimeOffset OccurredAt,
+    Guid? AssignedEmployeeUserId = null);

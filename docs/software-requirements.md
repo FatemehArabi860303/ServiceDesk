@@ -16,7 +16,7 @@ Customer, Employee, and Administrator are User roles, not separate identity enti
 
 | ID | Requirement |
 |---|---|
-| AUTH-001 | ServiceDesk shall use self-issued JWT bearer authentication. A successful login shall identify the immutable User.Id and current User.Role in a signed, expiring token. The initial access-token lifetime shall be 30 minutes. |
+| AUTH-001 | ServiceDesk shall use self-issued JWT bearer authentication. A successful login shall identify the immutable User.Id and current User.Role in a signed, expiring token. The initial access-token lifetime shall be four hours. A valid token is authoritative until expiration; protected operations shall not reload the persisted User solely to re-check role or active state. |
 | AUTH-002 | Login shall use the User's unique email and password. A User must exist, be active, have a credential, and verify the password. Unknown email, missing credential, invalid password, and inactive User failures shall be externally generic. |
 | AUTH-003 | Authentication credentials shall be persisted separately from User management as UserCredential data containing only UserId and PasswordHash. Passwords shall never be persisted in plaintext. |
 | AUTH-004 | Passwords shall contain 15 to 128 Unicode code points; Unicode and spaces are allowed; NFC normalization shall occur before hashing and verification; passwords shall not be trimmed or silently truncated; no composition rule or periodic expiration applies. |
@@ -40,6 +40,8 @@ Customer, Employee, and Administrator are User roles, not separate identity enti
 | FR-005 | A User with the `Employee` role shall be eligible to handle service requests. |
 | FR-006 | The system shall later retrieve tickets assigned to an Employee User, including tickets retained for an employee who later becomes inactive. |
 
+Until future Feature/category eligibility is configured, an authenticated Employee may later view all available unassigned tickets and use visible information such as Priority to choose a request. This visibility capability is separate from self-assignment.
+
 ### Ticket management
 
 | ID | Requirement |
@@ -49,8 +51,8 @@ Customer, Employee, and Administrator are User roles, not separate identity enti
 | FR-012 | The system shall list tickets and support practical filtering/searching by Customer User, assigned Employee User, status, priority, and text; results shall be pageable. |
 | FR-013 | The system shall update permitted ticket information, including title and description, without changing its Customer User ownership. |
 | FR-014 | The system shall change a ticket priority to a valid defined value and record the change. |
-| FR-015 | The system shall assign an active Employee User to an unassigned ticket and record the assignment. |
-| FR-016 | The system shall reassign a ticket to another active Employee User and record prior and new assignees. |
+| FR-015 | An authenticated Employee shall self-assign an `Open`, unassigned ticket to the Employee User identified by the authenticated access token. The operation shall record the assignment, update the ticket timestamp, and not change ticket status. |
+| FR-016 | The system shall later support reassignment to another Employee User and record prior and new assignees. Reassignment is separate from Employee self-assignment; its actor authorization and detailed rules require separate design. |
 | FR-017 | The system shall change status only through defined valid lifecycle transitions and record the change. |
 | FR-018 | The system shall add comments as attributable, immutable history entries. |
 | FR-019 | The system shall retrieve a ticket's history in chronological order. |
@@ -114,15 +116,16 @@ Customer, Employee, and Administrator are User roles, not separate identity enti
 
 ### Scenario E — Assignment audit
 
-1. An unassigned ticket is assigned to Employee A.
-2. It is reassigned to Employee B.
+1. Employee A self-assigns an `Open`, unassigned ticket.
+2. It is later reassigned to Employee B by a future reassignment capability.
 3. History records both changes, including prior and new assignment where applicable.
 
-### Scenario F — Inactive employee
+### Scenario F — Access-token authority after User state change
 
-1. An employee is inactive.
-2. An actor attempts to assign a new ticket to that employee.
-3. The operation is rejected and the assignment remains unchanged.
+1. An Employee authenticates while active and receives an access token.
+2. An administrator changes the persisted User active state or role.
+3. The Employee self-assigns an `Open`, unassigned ticket while the Employee access token remains valid.
+4. The assignment is accepted; the persisted User state will affect a later login, not the already-issued token.
 
 ### Scenario G — Concurrent update
 
@@ -133,7 +136,7 @@ Customer, Employee, and Administrator are User roles, not separate identity enti
 
 ## Database requirements
 
-All major records require primary keys. Required future foreign-key relationships are `Ticket.CustomerUserId → User.Id`, nullable `Ticket.AssignedEmployeeUserId → User.Id`, `TicketHistory.TicketId → Ticket.Id`, and `TicketHistory.ActorUserId → User.Id`. Ticket creation records the submitting customer as both `CustomerUserId` and `ActorUserId`.
+All major records require primary keys. Required future foreign-key relationships are `Ticket.CustomerUserId → User.Id`, nullable `Ticket.AssignedEmployeeUserId → User.Id`, `TicketHistory.TicketId → Ticket.Id`, `TicketHistory.ActorUserId → User.Id`, and nullable `TicketHistory.AssignedEmployeeUserId → User.Id` for assignment history. Ticket creation records the submitting customer as both `CustomerUserId` and `ActorUserId`; self-assignment records the authenticated Employee as both history actor and assigned Employee.
 
 User email must be unique. Useful indexes include ticket customer and assigned employee Users (customer and agent work lists); ticket status and priority (filtering queues); ticket creation date (sorting/reporting); and ticket-history ticket/date (chronological audit retrieval). Indexes should be created only for these expected query patterns and reviewed when real usage changes.
 
@@ -141,10 +144,10 @@ The database must preserve references needed for ticket and history integrity. I
 
 ## Concurrency requirement
 
-Ticket changes must be protected from lost updates. If two users read version 5, one successfully updates to version 6, and the other submits version 5, the latter request must fail with a conflict. The client must retrieve current state before deciding whether to retry. The concrete persistence mechanism is intentionally not specified here.
+Ticket changes must be protected from lost updates. For self-assignment, two Employees attempting to claim the same `Open`, unassigned ticket must result in exactly one accepted assignment; the losing request must fail with a conflict and create no history. The concrete persistence mechanism is intentionally not specified here.
 
 ## Deliberately undecided
 
 - Exact maximum lengths and formatting rules for names, title, description, and comments.
-- Exact role-to-operation permissions and who confirms a resolution.
+- Exact role-to-operation permissions beyond Employee self-assignment, and who confirms a resolution.
 - Whether Users may ever be deactivated or deleted; any policy must preserve tickets and history.

@@ -1,0 +1,17 @@
+$kind: http-request
+url: http://localhost:5011/api/auth/activate
+method: POST
+body:
+  type: json
+  content: "{\r
+
+    \  \"activationToken\": \"<ACTIVATION_TOKEN>\",\r
+
+    \  \"password\": \"<CUSTOMER_PASSWORD>\"\r
+
+    }"
+scripts:
+  - type: afterResponse
+    code: ""
+    language: text/javascript
+order: 3915721432681655

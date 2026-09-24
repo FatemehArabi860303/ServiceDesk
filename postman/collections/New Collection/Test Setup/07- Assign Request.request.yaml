@@ -1,0 +1,4 @@
+$kind: http-request
+url: http://localhost:5011/api/tickets/{TICKET_ID}/assignment
+method: POST
+order: 4424750971647777

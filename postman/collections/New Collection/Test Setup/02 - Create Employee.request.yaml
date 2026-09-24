@@ -1,0 +1,28 @@
+$kind: http-request
+method: POST
+url: 'http://localhost:5011/api/users'
+order: 2000
+headers:
+  - key: Authorization
+    value: 'Bearer {{administratorToken}}'
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {"firstName":"Test","lastName":"Employee","email":"test.employee@servicedesk.local","role":1}
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status code is 201", function () {
+        pm.response.to.have.status(201);
+      });
+
+      const response = pm.response.json();
+
+      pm.test("id exists", function () {
+        pm.expect(response.id).to.exist;
+      });
+
+      pm.collectionVariables.set("employeeUserId", response.id);
