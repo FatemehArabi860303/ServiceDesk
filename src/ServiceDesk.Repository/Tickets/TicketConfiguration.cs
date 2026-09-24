@@ -14,6 +14,7 @@ public sealed class TicketConfiguration : IEntityTypeConfiguration<Ticket>
 
         builder.Property(ticket => ticket.Id).ValueGeneratedNever();
         builder.Property(ticket => ticket.CustomerUserId).IsRequired();
+        builder.Property(ticket => ticket.AssignedEmployeeUserId);
         builder.Property(ticket => ticket.Title).IsRequired();
         builder.Property(ticket => ticket.Description).IsRequired();
         builder.Property(ticket => ticket.Priority).HasConversion<string>().HasMaxLength(20).IsRequired();
@@ -25,6 +26,13 @@ public sealed class TicketConfiguration : IEntityTypeConfiguration<Ticket>
             .WithMany()
             .HasForeignKey(ticket => ticket.CustomerUserId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne<User>()
+            .WithMany()
+            .HasForeignKey(ticket => ticket.AssignedEmployeeUserId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(ticket => ticket.AssignedEmployeeUserId);
 
         builder.HasMany(ticket => ticket.History)
             .WithOne()

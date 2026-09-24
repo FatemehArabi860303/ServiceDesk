@@ -72,8 +72,103 @@ public sealed class TicketRepositoryTests : IAsyncLifetime
         await act.Should().ThrowAsync<DbUpdateException>();
     }
 
+    [Fact]
+    public async Task TryAssignAsync_WithOpenUnassignedTicket_PersistsAssignmentAndHistory()
+    {
+        // Arrange
+        var customer = CreateCustomer();
+        var employee = CreateEmployee();
+        var ticket = CreateTicket(customer.Id, Guid.NewGuid());
+        await SeedAsync(customer, employee);
+        await AddTicketAsync(ticket);
+        var assignmentHistoryId = Guid.NewGuid();
+        await using var context = new ServiceDeskDbContext(options);
+        var repository = new TicketRepository(context);
+        var loadedTicket = await repository.GetByIdAsync(ticket.Id);
+        AssignTicketCore.Execute(loadedTicket, employee.Id, assignmentHistoryId, DateTimeOffset.UtcNow);
+
+        // Act
+        var assigned = await repository.TryAssignAsync(loadedTicket!, assignmentHistoryId);
+
+        // Assert
+        assigned.Should().BeTrue();
+        await using var verificationContext = new ServiceDeskDbContext(options);
+        var stored = await verificationContext.Tickets.Include(item => item.History).SingleAsync(item => item.Id == ticket.Id);
+        stored.AssignedEmployeeUserId.Should().Be(employee.Id);
+        stored.History.Should().HaveCount(2);
+        var assignment = stored.History.Single(history => history.Id == assignmentHistoryId);
+        assignment.Action.Should().Be(TicketHistoryAction.Assigned);
+        assignment.ActorUserId.Should().Be(employee.Id);
+        assignment.AssignedEmployeeUserId.Should().Be(employee.Id);
+    }
+
+    [Fact]
+    public async Task TryAssignAsync_WithTwoStaleUnassignedTickets_AllowsOnlyOneClaimAndHistory()
+    {
+        // Arrange
+        var customer = CreateCustomer();
+        var firstEmployee = CreateEmployee();
+        var secondEmployee = CreateEmployee();
+        var ticket = CreateTicket(customer.Id, Guid.NewGuid());
+        await SeedAsync(customer, firstEmployee, secondEmployee);
+        await AddTicketAsync(ticket);
+        await using var firstContext = new ServiceDeskDbContext(options);
+        await using var secondContext = new ServiceDeskDbContext(options);
+        var firstRepository = new TicketRepository(firstContext);
+        var secondRepository = new TicketRepository(secondContext);
+        var firstTicket = await firstRepository.GetByIdAsync(ticket.Id);
+        var secondTicket = await secondRepository.GetByIdAsync(ticket.Id);
+        var firstHistoryId = Guid.NewGuid();
+        var secondHistoryId = Guid.NewGuid();
+        AssignTicketCore.Execute(firstTicket, firstEmployee.Id, firstHistoryId, DateTimeOffset.UtcNow);
+        AssignTicketCore.Execute(secondTicket, secondEmployee.Id, secondHistoryId, DateTimeOffset.UtcNow);
+
+        // Act
+        var firstAssigned = await firstRepository.TryAssignAsync(firstTicket!, firstHistoryId);
+        var secondAssigned = await secondRepository.TryAssignAsync(secondTicket!, secondHistoryId);
+
+        // Assert
+        firstAssigned.Should().BeTrue();
+        secondAssigned.Should().BeFalse();
+        await using var verificationContext = new ServiceDeskDbContext(options);
+        var stored = await verificationContext.Tickets.Include(item => item.History).SingleAsync(item => item.Id == ticket.Id);
+        stored.AssignedEmployeeUserId.Should().Be(firstEmployee.Id);
+        stored.History.Should().HaveCount(2);
+        stored.History.Should().Contain(history => history.Id == firstHistoryId);
+        stored.History.Should().NotContain(history => history.Id == secondHistoryId);
+    }
+
+    [Fact]
+    public async Task TryAssignAsync_WithNonOpenTicket_DoesNotPersistAssignmentOrHistory()
+    {
+        // Arrange
+        var customer = CreateCustomer();
+        var employee = CreateEmployee();
+        var ticket = CreateTicket(customer.Id, Guid.NewGuid());
+        await SeedAsync(customer, employee);
+        await AddTicketAsync(ticket);
+        await using (var statusContext = new ServiceDeskDbContext(options))
+        {
+            await statusContext.Database.ExecuteSqlAsync($"UPDATE Tickets SET Status = {"InProgress"} WHERE Id = {ticket.Id}");
+        }
+
+        await using var context = new ServiceDeskDbContext(options);
+        var repository = new TicketRepository(context);
+        var loadedTicket = await repository.GetByIdAsync(ticket.Id);
+
+        // Act
+        Action act = () => AssignTicketCore.Execute(loadedTicket, employee.Id, Guid.NewGuid(), DateTimeOffset.UtcNow);
+
+        // Assert
+        act.Should().Throw<AssignTicketException>().Which.Failure.Should().Be(AssignTicketFailureKind.TicketNotOpen);
+        await using var verificationContext = new ServiceDeskDbContext(options);
+        var stored = await verificationContext.Tickets.Include(item => item.History).SingleAsync(item => item.Id == ticket.Id);
+        stored.AssignedEmployeeUserId.Should().BeNull();
+        stored.History.Should().ContainSingle();
+    }
+
     private static User CreateCustomer() => new(
-        CustomerUserId,
+        Guid.NewGuid(),
         "Ada",
         "Lovelace",
         "ADA@EXAMPLE.COM",
@@ -82,12 +177,35 @@ public sealed class TicketRepositoryTests : IAsyncLifetime
         new DateTimeOffset(2026, 9, 22, 12, 0, 0, TimeSpan.Zero),
         new DateTimeOffset(2026, 9, 22, 12, 0, 0, TimeSpan.Zero));
 
-    private static Ticket CreateTicket(Guid customerUserId) =>
+    private static User CreateEmployee() => new(
+        Guid.NewGuid(),
+        "Grace",
+        "Hopper",
+        $"GRACE-{Guid.NewGuid():N}@EXAMPLE.COM",
+        UserRole.Employee,
+        true,
+        new DateTimeOffset(2026, 9, 22, 12, 0, 0, TimeSpan.Zero),
+        new DateTimeOffset(2026, 9, 22, 12, 0, 0, TimeSpan.Zero));
+
+    private async Task SeedAsync(params User[] users)
+    {
+        await using var context = new ServiceDeskDbContext(options);
+        context.Users.AddRange(users);
+        await context.SaveChangesAsync();
+    }
+
+    private async Task AddTicketAsync(Ticket ticket)
+    {
+        await using var context = new ServiceDeskDbContext(options);
+        await new TicketRepository(context).AddAsync(ticket);
+    }
+
+    private static Ticket CreateTicket(Guid customerUserId, Guid? ticketId = null) =>
         CreateTicketCore.Execute(
             new CreateTicketCommand("Cannot access VPN", "The VPN rejects my credentials.", TicketPriority.High),
             new CreateTicketFacts(true),
             customerUserId,
-            Guid.Parse("247da287-7f60-4111-bbbf-cde1157402ef"),
-            Guid.Parse("4e5bb9c5-a15a-4d8b-a0e0-1f8624ecb01d"),
+            ticketId ?? Guid.Parse("247da287-7f60-4111-bbbf-cde1157402ef"),
+            Guid.NewGuid(),
             new DateTimeOffset(2026, 9, 22, 12, 0, 0, TimeSpan.Zero));
 }

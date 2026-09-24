@@ -10,8 +10,8 @@
 | BR-004 | A ticket status must be exactly one of `Open`, `InProgress`, `Resolved`, or `Closed`. |
 | BR-005 | A newly created ticket has status `Open`, immutable identity, and immutable creation timestamp. |
 | BR-006 | A ticket may have no assigned Employee User when created. |
-| BR-007 | A ticket may only be assigned or reassigned to an active Employee User. |
-| BR-008 | Mutable ticket details are title, description, priority, assignment, and status. Every accepted material change updates `UpdatedAt`. |
+| BR-007 | A valid authenticated Employee may self-assign only an `Open`, unassigned ticket to that Employee's authenticated User identity. Reassignment is separate future work. |
+| BR-008 | Mutable ticket details are title, description, priority, assignment, and status. Every accepted material change updates `UpdatedAt`. Self-assignment does not change ticket status. |
 | BR-009 | `ClosedAt` must be `null` whenever status is not `Closed`. |
 | BR-010 | Closing a ticket is valid only from `Resolved`; it changes status to `Closed`, sets `ClosedAt`, updates `UpdatedAt`, and creates history. |
 | BR-011 | Reopening is valid only from `Closed`; it changes status to `InProgress`, clears `ClosedAt`, updates `UpdatedAt`, and creates reopening history. |
@@ -36,8 +36,8 @@ Status changes are explicit business operations because status determines whethe
 | ID | Rule |
 |---|---|
 | BR-020 | An Employee is a User with the `Employee` role; no separate Employee identity entity exists. |
-| BR-021 | An inactive Employee User cannot receive a new ticket assignment or reassignment. |
-| BR-022 | Existing and historical tickets may retain their relationship to an Employee User who later becomes inactive. |
+| BR-021 | A User must be active to authenticate and receive an Employee access token. A valid Employee access token remains authoritative until its four-hour expiration, even if the persisted User role or active state later changes. |
+| BR-022 | Existing and historical tickets may retain their relationship to an Employee User whose role or active state later changes. |
 | BR-023 | An Employee User must not be physically deleted when doing so would break ticket or history information; deactivation is the normal alternative. |
 
 ## User rules
@@ -75,8 +75,8 @@ Password replacement/change, password reset, invitation email, email verificatio
 |---|---|
 | BR-025 | Every history entry belongs to exactly one ticket. |
 | BR-026 | History is append-only: a stored entry is not normally edited or deleted. |
-| BR-027 | A history entry records the ticket, `ActorUserId`, occurrence time, action type, and relevant change information. |
-| BR-028 | Ticket creation, assignment/reassignment, priority change, status change, comment addition, title change, description change, closure, and reopening must create history. Ticket creation records `ActorUserId` equal to `CustomerUserId`. |
+| BR-027 | A history entry records the ticket, `ActorUserId`, occurrence time, action type, and relevant change information. An assignment entry also records `AssignedEmployeeUserId`. |
+| BR-028 | Ticket creation, self-assignment, future reassignment, priority change, status change, comment addition, title change, description change, closure, and reopening must create history. Ticket creation records `ActorUserId` equal to `CustomerUserId`; self-assignment records the authenticated Employee as both `ActorUserId` and `AssignedEmployeeUserId`. |
 | BR-029 | A comment is represented as a history entry attributable to the User who added it. |
 | BR-030 | A rejected operation creates no history entry. |
 
@@ -85,13 +85,13 @@ Password replacement/change, password reset, invitation email, email verificatio
 | ID | Rule |
 |---|---|
 | BR-031 | User email must be unique. |
-| BR-032 | Ticket customer User, assigned Employee User, history-ticket, and history-actor User relationships must be referentially valid; assigned Employee User is optional. |
-| BR-033 | A stale ticket update must fail with a concurrency conflict instead of overwriting a later accepted update. |
-| BR-034 | History and status/closure changes for one accepted operation must remain consistent: no successful status change may exist without its required history record. |
+| BR-032 | Ticket customer User, assigned Employee User, history-ticket, history-actor User, and assignment-history Employee User relationships must be referentially valid; assigned Employee User is optional. |
+| BR-033 | A stale ticket update must fail with a concurrency conflict instead of overwriting a later accepted update. For self-assignment, exactly one Employee may claim the same `Open`, unassigned ticket; a losing concurrent request must create no history. |
+| BR-034 | History and material ticket changes for one accepted operation must remain consistent: no successful status change or self-assignment may exist without its required history record. |
 
 ## Authorization boundary
 
-The business rules describe what is allowed for valid records. Authentication credentials, tokens, password storage, hashing, and JWT mechanics are not Functional Core concepts. User management is separate from authentication. Future authorization determines which authenticated User may invoke an operation; it must enforce these business rules rather than replace them.
+The business rules describe what is allowed for valid records. Authentication credentials, tokens, password storage, hashing, and JWT mechanics are not Functional Core concepts. User management is separate from authentication. A valid Employee access token authorizes Employee self-assignment for its four-hour lifetime without a persisted User role or active-state recheck. Future authorization determines which authenticated User may invoke other operations; it must enforce these business rules rather than replace them.
 
 ## Future ServiceDesk settings
 
@@ -99,7 +99,7 @@ The business rules describe what is allowed for valid records. Authentication cr
 
 ## Open policy decisions
 
-- Who is permitted to close versus only resolve a ticket.
+- Who is permitted to reassign, close, or only resolve a ticket.
 - Whether customer-created tickets are exposed directly at initial release or via an authenticated customer portal later.
 - User retention/deactivation policy.
 - Field-length limits and whether comments have a maximum size.

@@ -17,10 +17,16 @@ public sealed class TicketHistoryConfiguration : IEntityTypeConfiguration<Ticket
         builder.Property(history => history.ActorUserId).IsRequired();
         builder.Property(history => history.Action).HasConversion<string>().HasMaxLength(20).IsRequired();
         builder.Property(history => history.OccurredAt).IsRequired();
+        builder.Property(history => history.AssignedEmployeeUserId);
 
         builder.HasOne<User>()
             .WithMany()
             .HasForeignKey(history => history.ActorUserId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne<User>()
+            .WithMany()
+            .HasForeignKey(history => history.AssignedEmployeeUserId)
             .OnDelete(DeleteBehavior.Restrict);
     }
 }

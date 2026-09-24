@@ -11,7 +11,7 @@ public sealed class JwtAccessTokenIssuer(JwtOptions options)
     {
         ArgumentNullException.ThrowIfNull(user);
 
-        var expiresAt = now.AddMinutes(JwtOptions.AccessTokenLifetimeMinutes);
+        var expiresAt = now.AddHours(JwtOptions.AccessTokenLifetimeHours);
         var token = new JwtSecurityToken(
             options.Issuer,
             options.Audience,

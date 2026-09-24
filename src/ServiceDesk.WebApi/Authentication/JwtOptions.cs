@@ -7,7 +7,7 @@ namespace ServiceDesk.WebApi.Authentication;
 public sealed class JwtOptions
 {
     public const string SectionName = "Jwt";
-    public const int AccessTokenLifetimeMinutes = 30;
+    public const int AccessTokenLifetimeHours = 4;
 
     public string Issuer { get; init; } = string.Empty;
 

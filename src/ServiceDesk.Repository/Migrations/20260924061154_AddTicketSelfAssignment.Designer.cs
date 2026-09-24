@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using ServiceDesk.Repository;
 
@@ -11,9 +12,11 @@ using ServiceDesk.Repository;
 namespace ServiceDesk.Repository.Migrations
 {
     [DbContext(typeof(ServiceDeskDbContext))]
-    partial class ServiceDeskDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260924061154_AddTicketSelfAssignment")]
+    partial class AddTicketSelfAssignment
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

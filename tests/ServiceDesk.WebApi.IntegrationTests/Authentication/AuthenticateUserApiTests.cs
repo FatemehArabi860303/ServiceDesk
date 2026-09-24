@@ -43,7 +43,7 @@ public sealed class AuthenticateUserApiTests : IClassFixture<ServiceDeskApiFacto
         var result = await response.Content.ReadFromJsonAsync<AuthenticateUserResponse>();
         result.Should().NotBeNull();
         result!.AccessToken.Should().NotBeNullOrWhiteSpace();
-        result.ExpiresAt.Should().BeCloseTo(DateTimeOffset.UtcNow.AddMinutes(30), TimeSpan.FromSeconds(5));
+        result.ExpiresAt.Should().BeCloseTo(DateTimeOffset.UtcNow.AddHours(4), TimeSpan.FromSeconds(5));
         var token = new JwtSecurityTokenHandler().ReadJwtToken(result.AccessToken);
         token.Subject.Should().Be(user.Id.ToString("D"));
         token.Claims.Should().Contain(claim => claim.Type == ClaimTypes.Role && claim.Value == user.Role.ToString());
@@ -108,7 +108,7 @@ public sealed class AuthenticateUserApiTests : IClassFixture<ServiceDeskApiFacto
     }
 
     [Fact]
-    public void Issue_WithExplicitTime_ExpiresExactlyThirtyMinutesLater()
+    public void Issue_WithExplicitTime_ExpiresExactlyFourHoursLater()
     {
         // Arrange
         var options = new JwtOptions
@@ -125,7 +125,7 @@ public sealed class AuthenticateUserApiTests : IClassFixture<ServiceDeskApiFacto
         var token = issuer.Issue(user, now);
 
         // Assert
-        token.ExpiresAt.Should().Be(now.AddMinutes(30));
+        token.ExpiresAt.Should().Be(now.AddHours(4));
     }
 
     [Fact]
