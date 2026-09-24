@@ -18,6 +18,25 @@ public sealed class TicketRepository(ServiceDeskDbContext dbContext) : ITicketRe
             .Include(ticket => ticket.History)
             .SingleOrDefaultAsync(ticket => ticket.Id == id, cancellationToken);
 
+    public async Task<IReadOnlyList<TicketListItem>> GetAllAsync(CancellationToken cancellationToken = default) =>
+        await (
+            from ticket in dbContext.Tickets.AsNoTracking()
+            join customer in dbContext.Users.AsNoTracking() on ticket.CustomerUserId equals customer.Id
+            join assignedEmployee in dbContext.Users.AsNoTracking()
+                on ticket.AssignedEmployeeUserId equals (Guid?)assignedEmployee.Id into assignedEmployees
+            from assignedEmployee in assignedEmployees.DefaultIfEmpty()
+            select new TicketListItem(
+                ticket.Id,
+                customer.Email,
+                assignedEmployee == null ? null : assignedEmployee.Email,
+                ticket.Title,
+                ticket.Description,
+                ticket.Priority,
+                ticket.Status,
+                ticket.CreatedAt,
+                ticket.UpdatedAt))
+            .ToListAsync(cancellationToken);
+
     public async Task<bool> TryAssignAsync(
         Ticket ticket,
         Guid assignmentHistoryId,
