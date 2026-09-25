@@ -5,6 +5,8 @@ using ServiceDesk.Core.Tickets;
 using ServiceDesk.Core.Users;
 using ServiceDesk.Repository;
 using ServiceDesk.Repository.Tickets;
+using ServiceDesk.Shell.Notifications;
+using System.Text.Json;
 
 namespace ServiceDesk.Repository.IntegrationTests.Tickets;
 
@@ -85,10 +87,11 @@ public sealed class TicketRepositoryTests : IAsyncLifetime
         await using var context = new ServiceDeskDbContext(options);
         var repository = new TicketRepository(context);
         var loadedTicket = await repository.GetByIdAsync(ticket.Id);
-        AssignTicketCore.Execute(loadedTicket, employee.Id, assignmentHistoryId, DateTimeOffset.UtcNow);
+        var progressed = AssignTicketCore.Execute(loadedTicket, employee.Id, assignmentHistoryId, DateTimeOffset.UtcNow);
+        var notification = CreateNotification(progressed);
 
         // Act
-        var assigned = await repository.TryAssignAsync(loadedTicket!, assignmentHistoryId);
+        var assigned = await repository.TryAssignAsync(loadedTicket!, assignmentHistoryId, notification);
 
         // Assert
         assigned.Should().BeTrue();
@@ -100,6 +103,16 @@ public sealed class TicketRepositoryTests : IAsyncLifetime
         assignment.Action.Should().Be(TicketHistoryAction.Assigned);
         assignment.ActorUserId.Should().Be(employee.Id);
         assignment.AssignedEmployeeUserId.Should().Be(employee.Id);
+        var outboxMessage = await verificationContext.OutboxMessages.SingleAsync(message => message.Id == notification.EventId);
+        outboxMessage.Type.Should().Be(RequestProgressedV1.Type);
+        outboxMessage.PublishedAt.Should().BeNull();
+        var integrationEvent = JsonSerializer.Deserialize<RequestProgressedV1>(outboxMessage.Payload);
+        integrationEvent.Should().Be(new RequestProgressedV1(
+            notification.EventId,
+            ticket.Id,
+            customer.Email,
+            RequestProgressKind.Assigned,
+            progressed.OccurredAt));
     }
 
     [Fact]
@@ -120,12 +133,14 @@ public sealed class TicketRepositoryTests : IAsyncLifetime
         var secondTicket = await secondRepository.GetByIdAsync(ticket.Id);
         var firstHistoryId = Guid.NewGuid();
         var secondHistoryId = Guid.NewGuid();
-        AssignTicketCore.Execute(firstTicket, firstEmployee.Id, firstHistoryId, DateTimeOffset.UtcNow);
-        AssignTicketCore.Execute(secondTicket, secondEmployee.Id, secondHistoryId, DateTimeOffset.UtcNow);
+        var firstProgressed = AssignTicketCore.Execute(firstTicket, firstEmployee.Id, firstHistoryId, DateTimeOffset.UtcNow);
+        var secondProgressed = AssignTicketCore.Execute(secondTicket, secondEmployee.Id, secondHistoryId, DateTimeOffset.UtcNow);
+        var firstNotification = CreateNotification(firstProgressed);
+        var secondNotification = CreateNotification(secondProgressed);
 
         // Act
-        var firstAssigned = await firstRepository.TryAssignAsync(firstTicket!, firstHistoryId);
-        var secondAssigned = await secondRepository.TryAssignAsync(secondTicket!, secondHistoryId);
+        var firstAssigned = await firstRepository.TryAssignAsync(firstTicket!, firstHistoryId, firstNotification);
+        var secondAssigned = await secondRepository.TryAssignAsync(secondTicket!, secondHistoryId, secondNotification);
 
         // Assert
         firstAssigned.Should().BeTrue();
@@ -136,6 +151,8 @@ public sealed class TicketRepositoryTests : IAsyncLifetime
         stored.History.Should().HaveCount(2);
         stored.History.Should().Contain(history => history.Id == firstHistoryId);
         stored.History.Should().NotContain(history => history.Id == secondHistoryId);
+        (await verificationContext.OutboxMessages.CountAsync()).Should().Be(1);
+        (await verificationContext.OutboxMessages.AnyAsync(message => message.Id == secondNotification.EventId)).Should().BeFalse();
     }
 
     [Fact]
@@ -186,8 +203,8 @@ public sealed class TicketRepositoryTests : IAsyncLifetime
             var assignmentRepository = new TicketRepository(assignmentContext);
             var loadedTicket = await assignmentRepository.GetByIdAsync(assignedTicket.Id);
             var assignmentHistoryId = Guid.NewGuid();
-            AssignTicketCore.Execute(loadedTicket, employee.Id, assignmentHistoryId, DateTimeOffset.UtcNow);
-            await assignmentRepository.TryAssignAsync(loadedTicket!, assignmentHistoryId);
+            var progressed = AssignTicketCore.Execute(loadedTicket, employee.Id, assignmentHistoryId, DateTimeOffset.UtcNow);
+            await assignmentRepository.TryAssignAsync(loadedTicket!, assignmentHistoryId, CreateNotification(progressed));
         }
 
         await using (var statusContext = new ServiceDeskDbContext(options))
@@ -264,4 +281,9 @@ public sealed class TicketRepositoryTests : IAsyncLifetime
             ticketId ?? Guid.Parse("247da287-7f60-4111-bbbf-cde1157402ef"),
             Guid.NewGuid(),
             new DateTimeOffset(2026, 9, 22, 12, 0, 0, TimeSpan.Zero));
+
+    private static TicketProgressNotification CreateNotification(RequestProgressed progressed) => new(
+        Guid.NewGuid(),
+        progressed,
+        progressed.OccurredAt);
 }

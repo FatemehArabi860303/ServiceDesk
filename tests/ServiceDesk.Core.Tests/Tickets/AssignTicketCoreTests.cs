@@ -20,7 +20,7 @@ public sealed class AssignTicketCoreTests
         var ticket = CreateTicket();
 
         // Act
-        AssignTicketCore.Execute(ticket, EmployeeUserId, AssignmentHistoryId, AssignedAt);
+        var progressed = AssignTicketCore.Execute(ticket, EmployeeUserId, AssignmentHistoryId, AssignedAt);
 
         // Assert
         ticket.AssignedEmployeeUserId.Should().Be(EmployeeUserId);
@@ -34,6 +34,7 @@ public sealed class AssignTicketCoreTests
         history.ActorUserId.Should().Be(EmployeeUserId);
         history.AssignedEmployeeUserId.Should().Be(EmployeeUserId);
         history.OccurredAt.Should().Be(AssignedAt);
+        progressed.Should().Be(new RequestProgressed(ticket.Id, CustomerUserId, RequestProgressKind.Assigned, AssignedAt));
     }
 
     [Fact]
@@ -57,12 +58,14 @@ public sealed class AssignTicketCoreTests
     {
         // Arrange
         Ticket? ticket = null;
+        RequestProgressed? progressed = null;
 
         // Act
-        Action act = () => AssignTicketCore.Execute(ticket, EmployeeUserId, AssignmentHistoryId, AssignedAt);
+        Action act = () => progressed = AssignTicketCore.Execute(ticket, EmployeeUserId, AssignmentHistoryId, AssignedAt);
 
         // Assert
         act.Should().Throw<AssignTicketException>().Which.Failure.Should().Be(AssignTicketFailureKind.TicketNotFound);
+        progressed.Should().BeNull();
     }
 
     private static Ticket CreateTicket() => CreateTicketCore.Execute(

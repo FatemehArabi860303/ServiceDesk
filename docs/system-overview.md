@@ -105,9 +105,13 @@ The User activates their account without an existing JWT by supplying the activa
 
 The operational sequence is: explicitly seed the first Administrator, authenticate that Administrator, create a User, provision that User's access, deliver the one-time activation token out-of-band, activate the account, authenticate the User, then allow protected operations such as customer ticket submission. This setup behavior is not a public product endpoint.
 
+## Request-progress notifications
+
+An accepted ticket assignment or start-work operation produces a pure request-progress fact. The Repository persists the associated ticket change, ticket history, and an unpublished transactional-outbox message in one database transaction. This first step does not publish messages or send email. A later approved delivery step will process committed outbox messages through RabbitMQ to an email notification consumer, so ticket operations never depend on broker or email availability.
+
 ## Scope boundaries
 
-Version one excludes email/SMS notifications, attachments, SLA management, escalation engines, knowledge base, asset/change/problem management, multi-tenancy, real-time chat, AI classification, microservices, and distributed event infrastructure. These may be evaluated later only if business needs justify them.
+Version one excludes direct email/SMS delivery, attachments, SLA management, escalation engines, knowledge base, asset/change/problem management, multi-tenancy, real-time chat, AI classification, and microservices. RabbitMQ publication, notification consumption, email delivery, retries, and dead-letter processing remain later steps after the transactional-outbox foundation.
 
 ## Assumptions and open decisions
 

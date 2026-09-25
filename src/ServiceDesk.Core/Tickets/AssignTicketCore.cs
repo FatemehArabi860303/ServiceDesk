@@ -2,7 +2,7 @@ namespace ServiceDesk.Core.Tickets;
 
 public static class AssignTicketCore
 {
-    public static void Execute(
+    public static RequestProgressed Execute(
         Ticket? ticket,
         Guid employeeUserId,
         Guid assignmentHistoryId,
@@ -14,5 +14,6 @@ public static class AssignTicketCore
         }
 
         ticket.Assign(employeeUserId, assignmentHistoryId, now);
+        return new RequestProgressed(ticket.Id, ticket.CustomerUserId, RequestProgressKind.Assigned, now);
     }
 }

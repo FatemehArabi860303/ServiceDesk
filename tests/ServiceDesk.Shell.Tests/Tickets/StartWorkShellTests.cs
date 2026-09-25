@@ -1,6 +1,7 @@
 using FluentAssertions;
 using NSubstitute;
 using ServiceDesk.Core.Tickets;
+using ServiceDesk.Shell.Notifications;
 using ServiceDesk.Shell.Tickets;
 
 namespace ServiceDesk.Shell.Tests.Tickets;
@@ -18,7 +19,7 @@ public sealed class StartWorkShellTests
         var repository = Substitute.For<ITicketRepository>();
         var ticket = CreateAssignedTicket();
         repository.GetByIdAsync(TicketId, Arg.Any<CancellationToken>()).Returns(ticket);
-        repository.TryStartWorkAsync(ticket, Arg.Any<Guid>(), Arg.Any<CancellationToken>()).Returns(true);
+        repository.TryStartWorkAsync(ticket, Arg.Any<Guid>(), Arg.Any<TicketProgressNotification>(), Arg.Any<CancellationToken>()).Returns(true);
         var shell = new StartWorkShell(repository);
 
         // Act
@@ -30,7 +31,12 @@ public sealed class StartWorkShellTests
         ticket.History.Should().Contain(entry => entry.Action == TicketHistoryAction.WorkStarted
             && entry.ActorUserId == EmployeeUserId
             && entry.AssignedEmployeeUserId == null);
-        await repository.Received(1).TryStartWorkAsync(ticket, Arg.Any<Guid>(), Arg.Any<CancellationToken>());
+        await repository.Received(1).TryStartWorkAsync(
+            ticket,
+            Arg.Any<Guid>(),
+            Arg.Is<TicketProgressNotification>(notification => notification.Progressed.Kind == RequestProgressKind.WorkStarted
+                && notification.Progressed.CustomerUserId == CustomerUserId),
+            Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -46,7 +52,11 @@ public sealed class StartWorkShellTests
 
         // Assert
         (await act.Should().ThrowAsync<StartWorkException>()).Which.Failure.Should().Be(StartWorkFailureKind.TicketNotFound);
-        await repository.DidNotReceive().TryStartWorkAsync(Arg.Any<Ticket>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>());
+        await repository.DidNotReceive().TryStartWorkAsync(
+            Arg.Any<Ticket>(),
+            Arg.Any<Guid>(),
+            Arg.Any<TicketProgressNotification>(),
+            Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -63,7 +73,11 @@ public sealed class StartWorkShellTests
 
         // Assert
         (await act.Should().ThrowAsync<StartWorkException>()).Which.Failure.Should().Be(StartWorkFailureKind.TicketUnassigned);
-        await repository.DidNotReceive().TryStartWorkAsync(Arg.Any<Ticket>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>());
+        await repository.DidNotReceive().TryStartWorkAsync(
+            Arg.Any<Ticket>(),
+            Arg.Any<Guid>(),
+            Arg.Any<TicketProgressNotification>(),
+            Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -73,7 +87,7 @@ public sealed class StartWorkShellTests
         var repository = Substitute.For<ITicketRepository>();
         var ticket = CreateAssignedTicket();
         repository.GetByIdAsync(TicketId, Arg.Any<CancellationToken>()).Returns(ticket);
-        repository.TryStartWorkAsync(ticket, Arg.Any<Guid>(), Arg.Any<CancellationToken>()).Returns(false);
+        repository.TryStartWorkAsync(ticket, Arg.Any<Guid>(), Arg.Any<TicketProgressNotification>(), Arg.Any<CancellationToken>()).Returns(false);
         var shell = new StartWorkShell(repository);
 
         // Act
@@ -81,7 +95,7 @@ public sealed class StartWorkShellTests
 
         // Assert
         (await act.Should().ThrowAsync<StartWorkException>()).Which.Failure.Should().Be(StartWorkFailureKind.TicketNoLongerEligible);
-        await repository.Received(1).TryStartWorkAsync(ticket, Arg.Any<Guid>(), Arg.Any<CancellationToken>());
+        await repository.Received(1).TryStartWorkAsync(ticket, Arg.Any<Guid>(), Arg.Any<TicketProgressNotification>(), Arg.Any<CancellationToken>());
     }
 
     private static Ticket CreateAssignedTicket()

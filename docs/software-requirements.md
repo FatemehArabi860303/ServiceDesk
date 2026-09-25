@@ -62,6 +62,7 @@ Until future Feature/category eligibility is configured, an authenticated Employ
 | FR-023 | The system shall reopen a `Closed` ticket to `InProgress`, clear `ClosedAt`, and record reopening. |
 | FR-024 | The system shall reject invalid status transitions without changing the ticket or creating history. |
 | FR-025 | An authenticated Employee assigned to an `Open` ticket shall start work on that ticket. The operation shall change the status to `InProgress`, preserve the assignment, update the ticket timestamp, and record work-started history. |
+| FR-026 | The system shall record `Assigned` and `WorkStarted` request-progress events in a transactional outbox with the accepted ticket operation. Notification publication and delivery are deferred. |
 
 ### ServiceDesk settings
 
@@ -84,7 +85,7 @@ Until future Feature/category eligibility is configured, an authenticated Employ
 | NFR-007 | User management and authentication shall remain separate. Authentication and role-based authorization shall use the existing User identity and role without placing credential, password-hashing, or JWT mechanics in the Functional Core. |
 | NFR-008 | Functional Core rules and Shell workflows shall have automated unit tests; HTTP behavior and persistence interactions shall have integration tests. |
 | NFR-009 | Ticket updates shall use optimistic concurrency so stale changes cause a conflict rather than silently overwriting newer data. |
-| NFR-010 | The solution shall remain a modular monolith with Core, Shell, Repository, and WebApi projects; it shall not introduce distributed infrastructure without a demonstrated need. |
+| NFR-010 | The solution shall remain a modular monolith with Core, Shell, Repository, and WebApi projects. Request-progress notifications shall use a transactional outbox before later asynchronous publication, rather than coupling ticket operations to distributed delivery. |
 
 ## Acceptance scenarios
 

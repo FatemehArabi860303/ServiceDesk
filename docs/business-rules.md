@@ -79,6 +79,8 @@ Password replacement/change, password reset, invitation email, email verificatio
 | BR-028 | Ticket creation, self-assignment, starting work, future reassignment, priority change, status change, comment addition, title change, description change, closure, and reopening must create history. Ticket creation records `ActorUserId` equal to `CustomerUserId`; self-assignment records the authenticated Employee as both `ActorUserId` and `AssignedEmployeeUserId`; starting work records the authenticated Employee as `ActorUserId`. |
 | BR-029 | A comment is represented as a history entry attributable to the User who added it. |
 | BR-030 | A rejected operation creates no history entry. |
+| BR-035 | An accepted ticket assignment or start-work operation creates one pure request-progress fact with kind `Assigned` or `WorkStarted`, respectively. A rejected operation creates no request-progress fact. |
+| BR-036 | Assignment and start-work persistence must atomically store the accepted ticket change, required history entry, and corresponding unpublished outbox message. A failed conditional update stores none of them. |
 
 ## Integrity and concurrency rules
 

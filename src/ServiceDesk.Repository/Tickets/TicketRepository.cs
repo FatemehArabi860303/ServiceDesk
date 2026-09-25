@@ -1,5 +1,8 @@
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using ServiceDesk.Core.Tickets;
+using ServiceDesk.Repository.Notifications;
+using ServiceDesk.Shell.Notifications;
 using ServiceDesk.Shell.Tickets;
 
 namespace ServiceDesk.Repository.Tickets;
@@ -40,6 +43,7 @@ public sealed class TicketRepository(ServiceDeskDbContext dbContext) : ITicketRe
     public async Task<bool> TryAssignAsync(
         Ticket ticket,
         Guid assignmentHistoryId,
+        TicketProgressNotification notification,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(ticket);
@@ -59,6 +63,7 @@ public sealed class TicketRepository(ServiceDeskDbContext dbContext) : ITicketRe
             return false;
         }
 
+        await AddProgressNotificationAsync(notification, cancellationToken);
         dbContext.TicketHistories.Add(assignmentHistory);
         await dbContext.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
@@ -68,6 +73,7 @@ public sealed class TicketRepository(ServiceDeskDbContext dbContext) : ITicketRe
     public async Task<bool> TryStartWorkAsync(
         Ticket ticket,
         Guid workStartedHistoryId,
+        TicketProgressNotification notification,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(ticket);
@@ -87,9 +93,34 @@ public sealed class TicketRepository(ServiceDeskDbContext dbContext) : ITicketRe
             return false;
         }
 
+        await AddProgressNotificationAsync(notification, cancellationToken);
         dbContext.TicketHistories.Add(workStartedHistory);
         await dbContext.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         return true;
+    }
+
+    private async Task AddProgressNotificationAsync(
+        TicketProgressNotification notification,
+        CancellationToken cancellationToken)
+    {
+        var customerEmail = await dbContext.Users
+            .Where(user => user.Id == notification.Progressed.CustomerUserId)
+            .Select(user => user.Email)
+            .SingleAsync(cancellationToken);
+        var integrationEvent = new RequestProgressedV1(
+            notification.EventId,
+            notification.Progressed.TicketId,
+            customerEmail,
+            notification.Progressed.Kind,
+            notification.Progressed.OccurredAt);
+        var outboxMessage = new OutboxMessage(
+            notification.EventId,
+            RequestProgressedV1.Type,
+            JsonSerializer.Serialize(integrationEvent),
+            notification.Progressed.OccurredAt,
+            notification.CreatedAt);
+
+        dbContext.OutboxMessages.Add(outboxMessage);
     }
 }
