@@ -31,4 +31,8 @@ public sealed class OutboxMessage
     public DateTimeOffset CreatedAt { get; private set; }
 
     public DateTimeOffset? PublishedAt { get; private set; }
+
+    public Guid? ClaimToken { get; private set; }
+
+    public DateTimeOffset? ClaimExpiresAt { get; private set; }
 }

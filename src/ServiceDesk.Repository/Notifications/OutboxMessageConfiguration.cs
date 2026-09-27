@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace ServiceDesk.Repository.Notifications;
 
@@ -16,6 +17,9 @@ public sealed class OutboxMessageConfiguration : IEntityTypeConfiguration<Outbox
         builder.Property(message => message.OccurredAt).IsRequired();
         builder.Property(message => message.CreatedAt).IsRequired();
         builder.Property(message => message.PublishedAt);
-        builder.HasIndex(message => new { message.PublishedAt, message.CreatedAt });
+        builder.Property(message => message.ClaimToken);
+        builder.Property(message => message.ClaimExpiresAt)
+            .HasConversion(new DateTimeOffsetToBinaryConverter());
+        builder.HasIndex(message => new { message.PublishedAt, message.ClaimExpiresAt, message.CreatedAt });
     }
 }
