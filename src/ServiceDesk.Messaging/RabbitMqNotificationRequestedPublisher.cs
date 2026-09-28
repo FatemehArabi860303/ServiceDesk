@@ -1,25 +1,22 @@
 using System.Text;
-using System.Text.Json;
+using Notification.Contracts;
 using RabbitMQ.Client;
-using ServiceDesk.Core.Tickets;
 using ServiceDesk.Shell.Notifications;
 
 namespace ServiceDesk.Messaging;
 
-public sealed class RabbitMqRequestProgressPublisher(IConnectionFactory connectionFactory) : IRequestProgressPublisher
+public sealed class RabbitMqNotificationRequestedPublisher(IConnectionFactory connectionFactory) : INotificationRequestedPublisher
 {
-    public const string ExchangeName = "servicedesk.request-progress";
+    public const string ExchangeName = "notifications";
+    public const string RoutingKey = NotificationRequestedV1.Type;
 
     public Task PublishAsync(OutboxMessageToPublish message, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var integrationEvent = JsonSerializer.Deserialize<RequestProgressedV1>(message.Payload)
-            ?? throw new InvalidOperationException("Outbox message payload is invalid.");
-        var routingKey = GetRoutingKey(integrationEvent.ProgressKind);
 
         using var connection = connectionFactory.CreateConnection();
         using var channel = connection.CreateModel();
-        channel.ExchangeDeclare(ExchangeName, ExchangeType.Topic, durable: true);
+        channel.ExchangeDeclare(ExchangeName, ExchangeType.Direct, durable: true);
         channel.ConfirmSelect();
 
         var properties = channel.CreateBasicProperties();
@@ -30,7 +27,7 @@ public sealed class RabbitMqRequestProgressPublisher(IConnectionFactory connecti
 
         channel.BasicPublish(
             ExchangeName,
-            routingKey,
+            RoutingKey,
             mandatory: false,
             basicProperties: properties,
             body: Encoding.UTF8.GetBytes(message.Payload));
@@ -38,11 +35,4 @@ public sealed class RabbitMqRequestProgressPublisher(IConnectionFactory connecti
 
         return Task.CompletedTask;
     }
-
-    public static string GetRoutingKey(RequestProgressKind kind) => kind switch
-    {
-        RequestProgressKind.Assigned => "request.progress.assigned",
-        RequestProgressKind.WorkStarted => "request.progress.work-started",
-        _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unsupported request progress kind.")
-    };
 }

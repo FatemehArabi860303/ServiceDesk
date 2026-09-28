@@ -1,6 +1,6 @@
 namespace ServiceDesk.Shell.Notifications;
 
-public interface IRequestProgressPublisher
+public interface INotificationRequestedPublisher
 {
     Task PublishAsync(
         OutboxMessageToPublish message,

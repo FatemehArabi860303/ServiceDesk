@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Notification.Contracts;
 using ServiceDesk.Core.Tickets;
 using ServiceDesk.Repository.Notifications;
 using ServiceDesk.Shell.Notifications;
@@ -108,19 +109,33 @@ public sealed class TicketRepository(ServiceDeskDbContext dbContext) : ITicketRe
             .Where(user => user.Id == notification.Progressed.CustomerUserId)
             .Select(user => user.Email)
             .SingleAsync(cancellationToken);
-        var integrationEvent = new RequestProgressedV1(
-            notification.EventId,
-            notification.Progressed.TicketId,
+        var notificationRequested = new NotificationRequestedV1(
+            "servicedesk",
+            notification.EventId.ToString(),
             customerEmail,
-            notification.Progressed.Kind,
-            notification.Progressed.OccurredAt);
+            GetSubject(notification.Progressed.Kind),
+            GetBody(notification.Progressed.Kind));
         var outboxMessage = new OutboxMessage(
             notification.EventId,
-            RequestProgressedV1.Type,
-            JsonSerializer.Serialize(integrationEvent),
+            NotificationRequestedV1.Type,
+            JsonSerializer.Serialize(notificationRequested),
             notification.Progressed.OccurredAt,
             notification.CreatedAt);
 
         dbContext.OutboxMessages.Add(outboxMessage);
     }
+
+    private static string GetSubject(RequestProgressKind kind) => kind switch
+    {
+        RequestProgressKind.Assigned => "Your service request has been assigned",
+        RequestProgressKind.WorkStarted => "Work has started on your service request",
+        _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unsupported request-progress notification.")
+    };
+
+    private static string GetBody(RequestProgressKind kind) => kind switch
+    {
+        RequestProgressKind.Assigned => "Your service request has been assigned to a support employee.",
+        RequestProgressKind.WorkStarted => "A support employee has started work on your service request.",
+        _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unsupported request-progress notification.")
+    };
 }

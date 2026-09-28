@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Notification.Contracts;
 using ServiceDesk.Core.Tickets;
 using ServiceDesk.Core.Users;
 using ServiceDesk.Repository;
@@ -104,15 +105,15 @@ public sealed class TicketRepositoryTests : IAsyncLifetime
         assignment.ActorUserId.Should().Be(employee.Id);
         assignment.AssignedEmployeeUserId.Should().Be(employee.Id);
         var outboxMessage = await verificationContext.OutboxMessages.SingleAsync(message => message.Id == notification.EventId);
-        outboxMessage.Type.Should().Be(RequestProgressedV1.Type);
+        outboxMessage.Type.Should().Be(NotificationRequestedV1.Type);
         outboxMessage.PublishedAt.Should().BeNull();
-        var integrationEvent = JsonSerializer.Deserialize<RequestProgressedV1>(outboxMessage.Payload);
-        integrationEvent.Should().Be(new RequestProgressedV1(
-            notification.EventId,
-            ticket.Id,
+        var notificationRequested = JsonSerializer.Deserialize<NotificationRequestedV1>(outboxMessage.Payload);
+        notificationRequested.Should().Be(new NotificationRequestedV1(
+            "servicedesk",
+            notification.EventId.ToString(),
             customer.Email,
-            RequestProgressKind.Assigned,
-            progressed.OccurredAt));
+            "Your service request has been assigned",
+            "Your service request has been assigned to a support employee."));
     }
 
     [Fact]

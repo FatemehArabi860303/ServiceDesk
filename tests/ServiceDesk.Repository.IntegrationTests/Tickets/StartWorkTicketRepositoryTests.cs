@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Notification.Contracts;
 using ServiceDesk.Core.Tickets;
 using ServiceDesk.Core.Users;
 using ServiceDesk.Repository;
@@ -59,13 +60,13 @@ public sealed class StartWorkTicketRepositoryTests : IAsyncLifetime
         history.AssignedEmployeeUserId.Should().BeNull();
         var outboxMessage = await verificationContext.OutboxMessages.SingleAsync(message => message.Id == notification.EventId);
         outboxMessage.PublishedAt.Should().BeNull();
-        var integrationEvent = JsonSerializer.Deserialize<RequestProgressedV1>(outboxMessage.Payload);
-        integrationEvent.Should().Be(new RequestProgressedV1(
-            notification.EventId,
-            ticket.Id,
+        var notificationRequested = JsonSerializer.Deserialize<NotificationRequestedV1>(outboxMessage.Payload);
+        notificationRequested.Should().Be(new NotificationRequestedV1(
+            "servicedesk",
+            notification.EventId.ToString(),
             customer.Email,
-            RequestProgressKind.WorkStarted,
-            startTime));
+            "Work has started on your service request",
+            "A support employee has started work on your service request."));
     }
 
     [Fact]

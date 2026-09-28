@@ -23,7 +23,7 @@ builder.Services.AddSingleton<IConnectionFactory>(_ => new ConnectionFactory
     Password = rabbitMqOptions.Password,
     DispatchConsumersAsync = true
 });
-builder.Services.AddSingleton<IRequestProgressPublisher, RabbitMqRequestProgressPublisher>();
+builder.Services.AddSingleton<INotificationRequestedPublisher, RabbitMqNotificationRequestedPublisher>();
 builder.Services.AddScoped<ProcessOutboxShell>();
 builder.Services.AddHostedService<OutboxPublisherWorker>();
 

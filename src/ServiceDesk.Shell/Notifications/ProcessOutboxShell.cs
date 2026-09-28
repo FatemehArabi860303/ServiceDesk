@@ -2,7 +2,7 @@ namespace ServiceDesk.Shell.Notifications;
 
 public sealed class ProcessOutboxShell(
     IOutboxRepository outboxRepository,
-    IRequestProgressPublisher publisher)
+    INotificationRequestedPublisher publisher)
 {
     private static readonly TimeSpan ClaimDuration = TimeSpan.FromMinutes(5);
 

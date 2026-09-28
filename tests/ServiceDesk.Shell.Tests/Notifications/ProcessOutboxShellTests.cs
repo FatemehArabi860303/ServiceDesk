@@ -11,7 +11,7 @@ public sealed class ProcessOutboxShellTests
     {
         // Arrange
         var repository = Substitute.For<IOutboxRepository>();
-        var publisher = Substitute.For<IRequestProgressPublisher>();
+        var publisher = Substitute.For<INotificationRequestedPublisher>();
         repository.TryClaimNextAsync(
                 Arg.Any<Guid>(),
                 Arg.Any<DateTimeOffset>(),
@@ -38,7 +38,7 @@ public sealed class ProcessOutboxShellTests
     {
         // Arrange
         var repository = Substitute.For<IOutboxRepository>();
-        var publisher = Substitute.For<IRequestProgressPublisher>();
+        var publisher = Substitute.For<INotificationRequestedPublisher>();
         var message = CreateMessage();
         repository.TryClaimNextAsync(
                 Arg.Any<Guid>(),
@@ -68,7 +68,7 @@ public sealed class ProcessOutboxShellTests
     {
         // Arrange
         var repository = Substitute.For<IOutboxRepository>();
-        var publisher = Substitute.For<IRequestProgressPublisher>();
+        var publisher = Substitute.For<INotificationRequestedPublisher>();
         var message = CreateMessage();
         repository.TryClaimNextAsync(
                 Arg.Any<Guid>(),
@@ -97,7 +97,7 @@ public sealed class ProcessOutboxShellTests
     {
         // Arrange
         var repository = Substitute.For<IOutboxRepository>();
-        var publisher = Substitute.For<IRequestProgressPublisher>();
+        var publisher = Substitute.For<INotificationRequestedPublisher>();
         var message = CreateMessage();
         repository.TryClaimNextAsync(
                 Arg.Any<Guid>(),
@@ -125,6 +125,6 @@ public sealed class ProcessOutboxShellTests
 
     private static OutboxMessageToPublish CreateMessage() => new(
         Guid.Parse("71bbd91d-0a36-4ef9-9947-21ca9d6bc80b"),
-        RequestProgressedV1.Type,
+        "notification.requested.v1",
         "{\"eventId\":\"71bbd91d-0a36-4ef9-9947-21ca9d6bc80b\"}");
 }

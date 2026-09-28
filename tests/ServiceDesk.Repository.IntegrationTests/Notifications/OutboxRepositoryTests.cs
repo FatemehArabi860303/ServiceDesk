@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Notification.Contracts;
 using ServiceDesk.Repository;
 using ServiceDesk.Repository.Notifications;
 using ServiceDesk.Shell.Notifications;
@@ -179,7 +180,7 @@ public sealed class OutboxRepositoryTests : IAsyncLifetime
 
     private static OutboxMessage CreateMessage() => new(
         Guid.NewGuid(),
-        RequestProgressedV1.Type,
+        NotificationRequestedV1.Type,
         "{\"schemaVersion\":1}",
         new DateTimeOffset(2026, 9, 27, 12, 0, 0, TimeSpan.Zero),
         new DateTimeOffset(2026, 9, 27, 12, 0, 0, TimeSpan.Zero));

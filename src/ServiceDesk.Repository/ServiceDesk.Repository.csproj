@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <ProjectReference Include="..\Notification.Contracts\Notification.Contracts.csproj" />
     <ProjectReference Include="..\ServiceDesk.Core\ServiceDesk.Core.csproj" />
     <ProjectReference Include="..\ServiceDesk.Shell\ServiceDesk.Shell.csproj" />
   </ItemGroup>

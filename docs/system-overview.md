@@ -107,11 +107,11 @@ The operational sequence is: explicitly seed the first Administrator, authentica
 
 ## Request-progress notifications
 
-An accepted ticket assignment or start-work operation produces a pure request-progress fact. The Repository persists the associated ticket change, ticket history, and an unpublished transactional-outbox message in one database transaction. This first step does not publish messages or send email. A later approved delivery step will process committed outbox messages through RabbitMQ to an email notification consumer, so ticket operations never depend on broker or email availability.
+An accepted ticket assignment or start-work operation produces a pure request-progress fact. ServiceDesk determines the final generic `NotificationRequestedV1` email content and the Repository persists the associated ticket change, ticket history, and unpublished transactional-outbox message in one database transaction. The ServiceDesk outbox publisher requires RabbitMQ publisher confirmation before setting `PublishedAt`. A separate, generic Notification Service consumes the message and acknowledges RabbitMQ only after successful SMTP email delivery, so ticket operations never depend on broker or email availability.
 
 ## Scope boundaries
 
-Version one excludes direct email/SMS delivery, attachments, SLA management, escalation engines, knowledge base, asset/change/problem management, multi-tenancy, real-time chat, AI classification, and microservices. RabbitMQ publication, notification consumption, email delivery, retries, and dead-letter processing remain later steps after the transactional-outbox foundation.
+Version one excludes SMS delivery, attachments, SLA management, escalation engines, knowledge base, asset/change/problem management, multi-tenancy, real-time chat, AI classification, and microservices. Notification persistence, idempotency using `(Producer, Id)`, duplicate suppression, retry scheduling, dead-letter handling, delivery lifecycle tracking, failed-delivery recovery, and multi-consumer concurrency guarantees remain later work.
 
 ## Assumptions and open decisions
 
