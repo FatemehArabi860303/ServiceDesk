@@ -2,7 +2,7 @@ namespace ServiceDesk.Core.Tickets;
 
 public static class StartWorkCore
 {
-    public static void Execute(
+    public static RequestProgressed Execute(
         Ticket? ticket,
         Guid employeeUserId,
         Guid workStartedHistoryId,
@@ -14,5 +14,6 @@ public static class StartWorkCore
         }
 
         ticket.StartWork(employeeUserId, workStartedHistoryId, now);
+        return new RequestProgressed(ticket.Id, ticket.CustomerUserId, RequestProgressKind.WorkStarted, now);
     }
 }

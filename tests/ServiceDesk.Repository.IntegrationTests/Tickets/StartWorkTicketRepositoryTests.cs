@@ -1,10 +1,13 @@
 using FluentAssertions;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Notification.Contracts;
 using ServiceDesk.Core.Tickets;
 using ServiceDesk.Core.Users;
 using ServiceDesk.Repository;
 using ServiceDesk.Repository.Tickets;
+using ServiceDesk.Shell.Notifications;
+using System.Text.Json;
 
 namespace ServiceDesk.Repository.IntegrationTests.Tickets;
 
@@ -37,10 +40,11 @@ public sealed class StartWorkTicketRepositoryTests : IAsyncLifetime
         var loadedTicket = await repository.GetByIdAsync(ticket.Id);
         var historyId = Guid.NewGuid();
         var startTime = DateTimeOffset.UtcNow;
-        StartWorkCore.Execute(loadedTicket, employee.Id, historyId, startTime);
+        var progressed = StartWorkCore.Execute(loadedTicket, employee.Id, historyId, startTime);
+        var notification = CreateNotification(progressed);
 
         // Act
-        var started = await repository.TryStartWorkAsync(loadedTicket!, historyId);
+        var started = await repository.TryStartWorkAsync(loadedTicket!, historyId, notification);
 
         // Assert
         started.Should().BeTrue();
@@ -54,6 +58,15 @@ public sealed class StartWorkTicketRepositoryTests : IAsyncLifetime
         history.Action.Should().Be(TicketHistoryAction.WorkStarted);
         history.ActorUserId.Should().Be(employee.Id);
         history.AssignedEmployeeUserId.Should().BeNull();
+        var outboxMessage = await verificationContext.OutboxMessages.SingleAsync(message => message.Id == notification.EventId);
+        outboxMessage.PublishedAt.Should().BeNull();
+        var notificationRequested = JsonSerializer.Deserialize<NotificationRequestedV1>(outboxMessage.Payload);
+        notificationRequested.Should().Be(new NotificationRequestedV1(
+            "servicedesk",
+            notification.EventId.ToString(),
+            customer.Email,
+            "Work has started on your service request",
+            "A support employee has started work on your service request."));
     }
 
     [Fact]
@@ -73,12 +86,14 @@ public sealed class StartWorkTicketRepositoryTests : IAsyncLifetime
         var secondTicket = await secondRepository.GetByIdAsync(ticket.Id);
         var firstHistoryId = Guid.NewGuid();
         var secondHistoryId = Guid.NewGuid();
-        StartWorkCore.Execute(firstTicket, employee.Id, firstHistoryId, DateTimeOffset.UtcNow);
-        StartWorkCore.Execute(secondTicket, employee.Id, secondHistoryId, DateTimeOffset.UtcNow);
+        var firstProgressed = StartWorkCore.Execute(firstTicket, employee.Id, firstHistoryId, DateTimeOffset.UtcNow);
+        var secondProgressed = StartWorkCore.Execute(secondTicket, employee.Id, secondHistoryId, DateTimeOffset.UtcNow);
+        var firstNotification = CreateNotification(firstProgressed);
+        var secondNotification = CreateNotification(secondProgressed);
 
         // Act
-        var firstStarted = await firstRepository.TryStartWorkAsync(firstTicket!, firstHistoryId);
-        var secondStarted = await secondRepository.TryStartWorkAsync(secondTicket!, secondHistoryId);
+        var firstStarted = await firstRepository.TryStartWorkAsync(firstTicket!, firstHistoryId, firstNotification);
+        var secondStarted = await secondRepository.TryStartWorkAsync(secondTicket!, secondHistoryId, secondNotification);
 
         // Assert
         firstStarted.Should().BeTrue();
@@ -88,6 +103,8 @@ public sealed class StartWorkTicketRepositoryTests : IAsyncLifetime
         storedTicket.Status.Should().Be(TicketStatus.InProgress);
         storedTicket.History.Should().Contain(history => history.Id == firstHistoryId);
         storedTicket.History.Should().NotContain(history => history.Id == secondHistoryId);
+        (await verificationContext.OutboxMessages.CountAsync()).Should().Be(2);
+        (await verificationContext.OutboxMessages.AnyAsync(message => message.Id == secondNotification.EventId)).Should().BeFalse();
     }
 
     private async Task AssignAsync(Guid ticketId, Guid employeeUserId)
@@ -96,8 +113,8 @@ public sealed class StartWorkTicketRepositoryTests : IAsyncLifetime
         var repository = new TicketRepository(context);
         var ticket = await repository.GetByIdAsync(ticketId);
         var historyId = Guid.NewGuid();
-        AssignTicketCore.Execute(ticket, employeeUserId, historyId, DateTimeOffset.UtcNow);
-        await repository.TryAssignAsync(ticket!, historyId);
+        var progressed = AssignTicketCore.Execute(ticket, employeeUserId, historyId, DateTimeOffset.UtcNow);
+        await repository.TryAssignAsync(ticket!, historyId, CreateNotification(progressed));
     }
 
     private async Task SeedAsync(params object[] values)
@@ -125,4 +142,9 @@ public sealed class StartWorkTicketRepositoryTests : IAsyncLifetime
         true,
         DateTimeOffset.UtcNow,
         DateTimeOffset.UtcNow);
+
+    private static TicketProgressNotification CreateNotification(RequestProgressed progressed) => new(
+        Guid.NewGuid(),
+        progressed,
+        progressed.OccurredAt);
 }

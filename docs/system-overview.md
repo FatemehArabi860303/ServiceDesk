@@ -105,9 +105,13 @@ The User activates their account without an existing JWT by supplying the activa
 
 The operational sequence is: explicitly seed the first Administrator, authenticate that Administrator, create a User, provision that User's access, deliver the one-time activation token out-of-band, activate the account, authenticate the User, then allow protected operations such as customer ticket submission. This setup behavior is not a public product endpoint.
 
+## Request-progress notifications
+
+An accepted ticket assignment or start-work operation produces a pure request-progress fact. ServiceDesk determines the final generic `NotificationRequestedV1` email content and the Repository persists the associated ticket change, ticket history, and unpublished transactional-outbox message in one database transaction. The ServiceDesk outbox publisher requires RabbitMQ publisher confirmation before setting `PublishedAt`. A separate, generic Notification Service consumes the message and acknowledges RabbitMQ only after successful SMTP email delivery, so ticket operations never depend on broker or email availability.
+
 ## Scope boundaries
 
-Version one excludes email/SMS notifications, attachments, SLA management, escalation engines, knowledge base, asset/change/problem management, multi-tenancy, real-time chat, AI classification, microservices, and distributed event infrastructure. These may be evaluated later only if business needs justify them.
+Version one excludes SMS delivery, attachments, SLA management, escalation engines, knowledge base, asset/change/problem management, multi-tenancy, real-time chat, AI classification, and microservices. Notification persistence, idempotency using `(Producer, Id)`, duplicate suppression, retry scheduling, dead-letter handling, delivery lifecycle tracking, failed-delivery recovery, and multi-consumer concurrency guarantees remain later work.
 
 ## Assumptions and open decisions
 

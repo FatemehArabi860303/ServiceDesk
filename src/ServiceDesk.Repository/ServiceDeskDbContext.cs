@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using ServiceDesk.Core.Tickets;
 using ServiceDesk.Core.Users;
 using ServiceDesk.Shell.Authentication;
+using ServiceDesk.Repository.Notifications;
 
 namespace ServiceDesk.Repository;
 
@@ -16,6 +17,8 @@ public sealed class ServiceDeskDbContext(DbContextOptions<ServiceDeskDbContext> 
     public DbSet<UserCredential> UserCredentials => Set<UserCredential>();
 
     public DbSet<UserAccessProvision> UserAccessProvisions => Set<UserAccessProvision>();
+
+    public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

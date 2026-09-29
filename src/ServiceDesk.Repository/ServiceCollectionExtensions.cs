@@ -4,9 +4,11 @@ using Microsoft.Extensions.DependencyInjection;
 using ServiceDesk.Repository.Users;
 using ServiceDesk.Repository.Authentication;
 using ServiceDesk.Repository.Tickets;
+using ServiceDesk.Repository.Notifications;
 using ServiceDesk.Shell.Tickets;
 using ServiceDesk.Shell.Users;
 using ServiceDesk.Shell.Authentication;
+using ServiceDesk.Shell.Notifications;
 
 namespace ServiceDesk.Repository;
 
@@ -31,6 +33,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAdministratorBootstrapRepository, AdministratorBootstrapRepository>();
         services.AddScoped<IUserAccessProvisionRepository, UserAccessProvisionRepository>();
         services.AddScoped<ITicketRepository, TicketRepository>();
+        services.AddScoped<IOutboxRepository, OutboxRepository>();
 
         return services;
     }

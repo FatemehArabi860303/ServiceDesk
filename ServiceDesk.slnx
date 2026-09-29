@@ -1,12 +1,22 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/Notification.Contracts/Notification.Contracts.csproj" />
+    <Project Path="src/NotificationService.Email/NotificationService.Email.csproj" />
+    <Project Path="src/NotificationService.Messaging/NotificationService.Messaging.csproj" />
+    <Project Path="src/NotificationService.Shell/NotificationService.Shell.csproj" />
+    <Project Path="src/NotificationService.Worker/NotificationService.Worker.csproj" />
     <Project Path="src/ServiceDesk.Core/ServiceDesk.Core.csproj" />
+    <Project Path="src/ServiceDesk.Messaging/ServiceDesk.Messaging.csproj" />
+    <Project Path="src/ServiceDesk.NotificationWorker/ServiceDesk.NotificationWorker.csproj" />
     <Project Path="src/ServiceDesk.Repository/ServiceDesk.Repository.csproj" />
     <Project Path="src/ServiceDesk.Shell/ServiceDesk.Shell.csproj" />
     <Project Path="src/ServiceDesk.WebApi/ServiceDesk.WebApi.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/NotificationService.Messaging.Tests/NotificationService.Messaging.Tests.csproj" />
+    <Project Path="tests/NotificationService.Shell.Tests/NotificationService.Shell.Tests.csproj" />
     <Project Path="tests/ServiceDesk.Core.Tests/ServiceDesk.Core.Tests.csproj" />
+    <Project Path="tests/ServiceDesk.Messaging.Tests/ServiceDesk.Messaging.Tests.csproj" />
     <Project Path="tests/ServiceDesk.Repository.IntegrationTests/ServiceDesk.Repository.IntegrationTests.csproj" />
     <Project Path="tests/ServiceDesk.Shell.Tests/ServiceDesk.Shell.Tests.csproj" />
     <Project Path="tests/ServiceDesk.WebApi.IntegrationTests/ServiceDesk.WebApi.IntegrationTests.csproj" />

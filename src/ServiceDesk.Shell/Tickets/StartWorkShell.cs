@@ -1,4 +1,5 @@
 using ServiceDesk.Core.Tickets;
+using ServiceDesk.Shell.Notifications;
 
 namespace ServiceDesk.Shell.Tickets;
 
@@ -11,9 +12,11 @@ public sealed class StartWorkShell(ITicketRepository ticketRepository)
     {
         var ticket = await ticketRepository.GetByIdAsync(ticketId, cancellationToken);
         var workStartedHistoryId = Guid.NewGuid();
-        StartWorkCore.Execute(ticket, employeeUserId, workStartedHistoryId, DateTimeOffset.UtcNow);
+        var now = DateTimeOffset.UtcNow;
+        var progressed = StartWorkCore.Execute(ticket, employeeUserId, workStartedHistoryId, now);
+        var notification = new TicketProgressNotification(Guid.NewGuid(), progressed, now);
 
-        var started = await ticketRepository.TryStartWorkAsync(ticket!, workStartedHistoryId, cancellationToken);
+        var started = await ticketRepository.TryStartWorkAsync(ticket!, workStartedHistoryId, notification, cancellationToken);
         if (!started)
         {
             throw new StartWorkException(StartWorkFailureKind.TicketNoLongerEligible);

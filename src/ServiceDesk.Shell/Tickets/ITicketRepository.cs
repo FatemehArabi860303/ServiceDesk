@@ -1,4 +1,5 @@
 using ServiceDesk.Core.Tickets;
+using ServiceDesk.Shell.Notifications;
 
 namespace ServiceDesk.Shell.Tickets;
 
@@ -13,10 +14,12 @@ public interface ITicketRepository
     Task<bool> TryAssignAsync(
         Ticket ticket,
         Guid assignmentHistoryId,
+        TicketProgressNotification notification,
         CancellationToken cancellationToken = default);
 
     Task<bool> TryStartWorkAsync(
         Ticket ticket,
         Guid workStartedHistoryId,
+        TicketProgressNotification notification,
         CancellationToken cancellationToken = default);
 }

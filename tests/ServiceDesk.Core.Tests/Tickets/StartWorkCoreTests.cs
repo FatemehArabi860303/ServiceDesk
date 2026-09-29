@@ -18,7 +18,7 @@ public sealed class StartWorkCoreTests
         var workStartedHistoryId = Guid.NewGuid();
 
         // Act
-        StartWorkCore.Execute(ticket, EmployeeUserId, workStartedHistoryId, workStartedAt);
+        var progressed = StartWorkCore.Execute(ticket, EmployeeUserId, workStartedHistoryId, workStartedAt);
 
         // Assert
         ticket.Status.Should().Be(TicketStatus.InProgress);
@@ -30,6 +30,7 @@ public sealed class StartWorkCoreTests
         history.ActorUserId.Should().Be(EmployeeUserId);
         history.OccurredAt.Should().Be(workStartedAt);
         history.AssignedEmployeeUserId.Should().BeNull();
+        progressed.Should().Be(new RequestProgressed(ticket.Id, CustomerUserId, RequestProgressKind.WorkStarted, workStartedAt));
     }
 
     [Fact]
@@ -84,12 +85,14 @@ public sealed class StartWorkCoreTests
     {
         // Arrange
         Ticket? ticket = null;
+        RequestProgressed? progressed = null;
 
         // Act
-        Action act = () => StartWorkCore.Execute(ticket, EmployeeUserId, Guid.NewGuid(), CreatedAt);
+        Action act = () => progressed = StartWorkCore.Execute(ticket, EmployeeUserId, Guid.NewGuid(), CreatedAt);
 
         // Assert
         act.Should().Throw<StartWorkException>().Which.Failure.Should().Be(StartWorkFailureKind.TicketNotFound);
+        progressed.Should().BeNull();
     }
 
     private static Ticket CreateAssignedTicket()

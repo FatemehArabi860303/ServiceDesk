@@ -142,6 +142,42 @@ namespace ServiceDesk.Repository.Migrations
                     b.ToTable("Users", (string)null);
                 });
 
+            modelBuilder.Entity("ServiceDesk.Repository.Notifications.OutboxMessage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<long?>("ClaimExpiresAt")
+                        .HasColumnType("bigint");
+
+                    b.Property<Guid?>("ClaimToken")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset>("OccurredAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Payload")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTimeOffset?>("PublishedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PublishedAt", "ClaimExpiresAt", "CreatedAt");
+
+                    b.ToTable("OutboxMessages", (string)null);
+                });
+
             modelBuilder.Entity("ServiceDesk.Shell.Authentication.UserAccessProvision", b =>
                 {
                     b.Property<Guid>("UserId")

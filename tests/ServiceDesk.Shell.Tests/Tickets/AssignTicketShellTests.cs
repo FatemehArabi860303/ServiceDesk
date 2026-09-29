@@ -1,6 +1,7 @@
 using FluentAssertions;
 using NSubstitute;
 using ServiceDesk.Core.Tickets;
+using ServiceDesk.Shell.Notifications;
 using ServiceDesk.Shell.Tickets;
 
 namespace ServiceDesk.Shell.Tests.Tickets;
@@ -18,7 +19,7 @@ public sealed class AssignTicketShellTests
         var repository = Substitute.For<ITicketRepository>();
         var ticket = CreateTicket();
         repository.GetByIdAsync(TicketId, Arg.Any<CancellationToken>()).Returns(ticket);
-        repository.TryAssignAsync(ticket, Arg.Any<Guid>(), Arg.Any<CancellationToken>()).Returns(true);
+        repository.TryAssignAsync(ticket, Arg.Any<Guid>(), Arg.Any<TicketProgressNotification>(), Arg.Any<CancellationToken>()).Returns(true);
         var shell = new AssignTicketShell(repository);
 
         // Act
@@ -29,7 +30,12 @@ public sealed class AssignTicketShellTests
         ticket.History.Should().Contain(entry => entry.Action == TicketHistoryAction.Assigned
             && entry.ActorUserId == EmployeeUserId
             && entry.AssignedEmployeeUserId == EmployeeUserId);
-        await repository.Received(1).TryAssignAsync(ticket, Arg.Any<Guid>(), Arg.Any<CancellationToken>());
+        await repository.Received(1).TryAssignAsync(
+            ticket,
+            Arg.Any<Guid>(),
+            Arg.Is<TicketProgressNotification>(notification => notification.Progressed.Kind == RequestProgressKind.Assigned
+                && notification.Progressed.CustomerUserId == CustomerUserId),
+            Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -45,7 +51,11 @@ public sealed class AssignTicketShellTests
 
         // Assert
         (await act.Should().ThrowAsync<AssignTicketException>()).Which.Failure.Should().Be(AssignTicketFailureKind.TicketNotFound);
-        await repository.DidNotReceive().TryAssignAsync(Arg.Any<Ticket>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>());
+        await repository.DidNotReceive().TryAssignAsync(
+            Arg.Any<Ticket>(),
+            Arg.Any<Guid>(),
+            Arg.Any<TicketProgressNotification>(),
+            Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -55,7 +65,7 @@ public sealed class AssignTicketShellTests
         var repository = Substitute.For<ITicketRepository>();
         var ticket = CreateTicket();
         repository.GetByIdAsync(TicketId, Arg.Any<CancellationToken>()).Returns(ticket);
-        repository.TryAssignAsync(ticket, Arg.Any<Guid>(), Arg.Any<CancellationToken>()).Returns(false);
+        repository.TryAssignAsync(ticket, Arg.Any<Guid>(), Arg.Any<TicketProgressNotification>(), Arg.Any<CancellationToken>()).Returns(false);
         var shell = new AssignTicketShell(repository);
 
         // Act
@@ -63,7 +73,7 @@ public sealed class AssignTicketShellTests
 
         // Assert
         (await act.Should().ThrowAsync<AssignTicketException>()).Which.Failure.Should().Be(AssignTicketFailureKind.TicketNoLongerAvailable);
-        await repository.Received(1).TryAssignAsync(ticket, Arg.Any<Guid>(), Arg.Any<CancellationToken>());
+        await repository.Received(1).TryAssignAsync(ticket, Arg.Any<Guid>(), Arg.Any<TicketProgressNotification>(), Arg.Any<CancellationToken>());
     }
 
     private static Ticket CreateTicket() => CreateTicketCore.Execute(
