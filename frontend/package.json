@@ -1,0 +1,26 @@
+{
+  "name": "service-desk-frontend",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest"
+  },
+  "dependencies": {
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "react-router-dom": "6.17.0"
+  },
+  "devDependencies": {
+    "@testing-library/react": "14.3.1",
+    "@testing-library/user-event": "14.6.7",
+    "@types/react": "18.2.21",
+    "@types/react-dom": "18.2.7",
+    "@vitejs/plugin-react": "4.3.4",
+    "typescript": "5.6.2",
+    "vite": "5.4.21",
+    "vitest": "1.6.1"
+  }
+}
