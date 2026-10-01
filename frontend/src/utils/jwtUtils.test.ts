@@ -1,4 +1,5 @@
 import { parseJwtPayload } from './jwtUtils'
+import { test, expect } from 'vitest'
 
 function base64UrlEncode(obj: any) {
   const json = JSON.stringify(obj)

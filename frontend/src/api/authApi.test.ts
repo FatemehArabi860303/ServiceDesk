@@ -1,5 +1,6 @@
 import { login } from './authApi'
 import * as apiClient from './apiClient'
+import { vi, test, expect } from 'vitest'
 
 vi.mock('./apiClient')
 
