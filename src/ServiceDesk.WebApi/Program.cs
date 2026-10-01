@@ -52,18 +52,37 @@ builder.Services.AddScoped<StartWorkShell>();
 builder.Services.AddScoped<GetAllTicketsShell>();
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 
-var app = builder.Build();
+var allowedOrigins = builder.Configuration
+    .GetSection("Cors:AllowedOrigins")
+    .Get<string[]>() ?? Array.Empty<string>();
 
-await WebApplicationStartup.RunAsync(args, builder.Configuration, app.Services, () =>
+builder.Services.AddCors(options =>
 {
-    if (!isBootstrapCommand)
+    options.AddPolicy("Frontend", policy =>
     {
-        app.UseAuthentication();
-        app.UseAuthorization();
-    }
-
-    app.MapControllers();
-    return app.RunAsync();
+        policy
+            .WithOrigins(allowedOrigins)
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
 });
 
+var app = builder.Build();
+
+app.UseCors("Frontend");
+
+if (!isBootstrapCommand)
+{
+    app.UseAuthentication();
+    app.UseAuthorization();
+}
+
+app.MapControllers();
+
+await WebApplicationStartup.RunAsync(
+    args,
+    builder.Configuration,
+    app.Services,
+    () => app.RunAsync()
+);
 public partial class Program;
