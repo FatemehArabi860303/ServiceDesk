@@ -51,6 +51,7 @@ builder.Services.AddScoped<AssignTicketShell>();
 builder.Services.AddScoped<StartWorkShell>();
 builder.Services.AddScoped<ResolveTicketShell>();
 builder.Services.AddScoped<GetAllTicketsShell>();
+builder.Services.AddScoped<GetUsersShell>();
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 
 var allowedOrigins = builder.Configuration
