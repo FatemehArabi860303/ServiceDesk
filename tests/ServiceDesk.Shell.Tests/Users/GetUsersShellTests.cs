@@ -5,17 +5,13 @@ using ServiceDesk.Shell.Users;
 
 namespace ServiceDesk.Shell.Tests.Users;
 
-public sealed class GetUsersShellTests
+public sealed class GetUsersShellTests(UsersFixture fixture) : IClassFixture<UsersFixture>
 {
     [Fact]
     public async Task ExecuteAsync_NoFilter_ReturnsAllUsers()
     {
         // Arrange
-        var users = new List<User>
-        {
-            new(UserId(), "A", "B", "a@x.com", UserRole.Customer, true, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow),
-            new(UserId(), "C", "D", "c@x.com", UserRole.Employee, true, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow)
-        };
+        var users = fixture.Users;
         var repo = Substitute.For<IUserRepository>();
         repo.GetUsersAsync(null, Arg.Any<CancellationToken>()).Returns(users);
         var shell = new GetUsersShell(repo);
@@ -32,11 +28,7 @@ public sealed class GetUsersShellTests
     public async Task ExecuteAsync_FilterByRole_ReturnsOnlyMatching()
     {
         // Arrange
-        var users = new List<User>
-        {
-            new(UserId(), "A", "B", "a@x.com", UserRole.Customer, true, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow),
-            new(UserId(), "C", "D", "c@x.com", UserRole.Customer, true, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow)
-        };
+        var users = fixture.CustomerUsers;
         var repo = Substitute.For<IUserRepository>();
         repo.GetUsersAsync(Arg.Any<UserFilter>(), Arg.Any<CancellationToken>()).Returns(users);
         var shell = new GetUsersShell(repo);
