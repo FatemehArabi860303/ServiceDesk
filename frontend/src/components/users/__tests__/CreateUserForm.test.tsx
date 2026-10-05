@@ -22,21 +22,22 @@ describe('CreateUserForm', () => {
 
   it('submits create user request and calls onCreated', async () => {
     const onCreated = vi.fn()
+    const createdIdCapture: string[] = []
     render(
       <AuthProvider>
         <MemoryRouter>
-          <CreateUserForm onCreated={onCreated} />
+          <CreateUserForm onCreated={(id) => createdIdCapture.push(id)} />
         </MemoryRouter>
       </AuthProvider>
     )
 
     await userEvent.type(screen.getByLabelText(/Email/i), 'new@example.com')
-    await userEvent.selectOptions(screen.getByLabelText(/Role/i), 'Employee')
+    await userEvent.selectOptions(screen.getByLabelText(/Role/i), '1')
 
     await userEvent.click(screen.getByRole('button', { name: /Create/i }))
 
-    await waitFor(() => expect(onCreated).toHaveBeenCalled())
+    await waitFor(() => expect(createdIdCapture.length).toBe(1))
 
-    expect(usersApi.createUser).toHaveBeenCalledWith(expect.objectContaining({ Email: 'new@example.com', Role: 'Employee' }), undefined)
+    expect(usersApi.createUser).toHaveBeenCalledWith(expect.objectContaining({ Email: 'new@example.com', Role: 1 }), undefined)
   })
 })

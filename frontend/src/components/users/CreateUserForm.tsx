@@ -1,10 +1,15 @@
 import React, { useState } from 'react'
 import { createUser } from '../../api/usersApi'
 import type { UserRole } from '../../auth/authTypes'
+enum NumericUserRole {
+  Customer = 0,
+  Employee = 1,
+  Administrator = 2
+}
 import { useAuth } from '../../auth/AuthContext'
 
 type Props = {
-  onCreated: () => void
+  onCreated: (createdId: string) => void
 }
 
 export default function CreateUserForm({ onCreated }: Props) {
@@ -12,30 +17,34 @@ export default function CreateUserForm({ onCreated }: Props) {
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [email, setEmail] = useState('')
-  const [role, setRole] = useState<UserRole>('Employee')
+  // keep role selection as numeric string in the select; convert to number on submit
+  const [role, setRole] = useState<string>(String(NumericUserRole.Employee))
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
-    if (!email || !role) {
+    if (!email || role === '') {
       setError('Email and Role are required')
       return
     }
 
     setLoading(true)
     try {
-      await createUser(
+      const numericRole = Number(role)
+      if (![0, 1, 2].includes(numericRole)) throw new Error('Invalid role')
+
+      const created = await createUser(
         {
           FirstName: firstName || undefined,
           LastName: lastName || undefined,
           Email: email,
-          Role: role
+          Role: numericRole
         },
         token ?? undefined
       )
-      onCreated()
+      onCreated(created.id)
     } catch (e: any) {
       setError(e?.message ?? 'Failed to create user')
     } finally {
@@ -67,10 +76,10 @@ export default function CreateUserForm({ onCreated }: Props) {
       <div style={{ marginBottom: 8 }}>
         <label>
           Role
-          <select value={role} onChange={e => setRole(e.target.value as UserRole)}>
-            <option value="Administrator">Administrator</option>
-            <option value="Employee">Employee</option>
-            <option value="Customer">Customer</option>
+          <select value={role} onChange={e => setRole(e.target.value)}>
+            <option value={String(NumericUserRole.Administrator)}>Administrator</option>
+            <option value={String(NumericUserRole.Employee)}>Employee</option>
+            <option value={String(NumericUserRole.Customer)}>Customer</option>
           </select>
         </label>
       </div>
