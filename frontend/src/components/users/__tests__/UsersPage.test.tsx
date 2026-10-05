@@ -47,7 +47,6 @@ describe('Admin Users pages', () => {
     const mocked = vi.mocked(usersApi.getUsers)
     mocked.mockResolvedValue(mockUsers)
 
-    // Mock provisionUserAccess for users list provisioning
     const mockedProv = vi.mocked((usersApi as any).provisionUserAccess)
     mockedProv.mockResolvedValue({ activationToken: 'token-abc', expiresAt: new Date(Date.now() + 1000 * 60 * 60).toISOString() } as any)
   })
@@ -55,7 +54,6 @@ describe('Admin Users pages', () => {
   afterEach(() => {
     cleanup()
     vi.clearAllMocks()
-    // Also clear authStorage to ensure ProtectedRoute uses a fresh state
     localStorage.clear()
   })
 
@@ -87,10 +85,7 @@ describe('Admin Users pages', () => {
     // Create page appears
     expect(screen.getByText(/Create User/i)).toBeInTheDocument()
 
-    // Now navigate back and provision from users list
-    // Simulate navigating back to users
-    // Render users list again to test provision action
-    render(
+        render(
       <MemoryRouter initialEntries={["/admin/users"]}>
         <AppRoutes />
       </MemoryRouter>
@@ -101,5 +96,12 @@ describe('Admin Users pages', () => {
     await userEvent.click(provision)
     // Provision modal should display token
     await waitFor(() => expect(screen.getByText(/User Access Provisioned/i)).toBeInTheDocument())
+
+    // Now simulate a 409 response and ensure friendly message and no modal
+    vi.mocked((usersApi as any).provisionUserAccess).mockRejectedValueOnce({ status: 409, message: 'Conflict' })
+    const provision2 = screen.getAllByText(/Provision Access/i)[0]
+    await userEvent.click(provision2)
+    await waitFor(() => expect(screen.queryByText(/User Access Provisioned/i)).not.toBeInTheDocument())
+    expect(screen.getByText('This user already has login credentials and cannot be provisioned again.')).toBeInTheDocument()
   })
 })

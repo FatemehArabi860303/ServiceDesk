@@ -44,12 +44,25 @@ export default function UsersPage() {
 
   async function onProvision(id: string) {
     setProvisioningUserId(id)
-    setError(null)
+
+      setError(null)
+    setProvisionResult(null)
     try {
       const resp = await provisionUserAccess(id, token ?? undefined)
       setProvisionResult(resp)
     } catch (e: any) {
-      setError(e?.message ?? 'Failed to provision access')
+      const status = e?.status as number | undefined
+      let msg = 'Unable to provision access. Please try again.'
+      if (status === 409) {
+        msg = 'This user already has login credentials and cannot be provisioned again.'
+      } else if (status === 403) {
+        msg = 'You do not have permission to provision access for this user.'
+      } else if (status === 404) {
+        msg = 'User not found.'
+      } else if (status === 400) {
+        msg = 'Access could not be provisioned for this user.'
+      }
+      setError(msg)
     } finally {
       setProvisioningUserId(null)
     }
