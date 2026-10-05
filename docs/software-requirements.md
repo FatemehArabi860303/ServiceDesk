@@ -56,13 +56,13 @@ Until future Feature/category eligibility is configured, an authenticated Employ
 | FR-017 | The system shall change status only through defined valid lifecycle transitions and record the change. |
 | FR-018 | The system shall add comments as attributable, immutable history entries. |
 | FR-019 | The system shall retrieve a ticket's history in chronological order. |
-| FR-020 | The system shall resolve an `InProgress` ticket, changing it to `Resolved`. |
+| FR-020 | An authenticated Employee shall resolve their assigned `InProgress` ticket; an Administrator may resolve any assigned `InProgress` ticket. `POST /api/tickets/{ticketId}/resolve` accepts no body and uses JWT identity and role. Success returns 204, changes status to `Resolved`, preserves assignment and creation time, updates `UpdatedAt`, records the actor in history, and atomically records a customer email notification. Customers are forbidden; missing tickets return 404 and invalid state or lost races return 409. Customer confirmation/closure remains separate. |
 | FR-021 | The system shall close a `Resolved` ticket, changing it to `Closed`, setting `ClosedAt`, and recording closure. |
 | FR-022 | The system shall return a `Resolved` ticket to `InProgress` when more work is needed. |
 | FR-023 | The system shall reopen a `Closed` ticket to `InProgress`, clear `ClosedAt`, and record reopening. |
 | FR-024 | The system shall reject invalid status transitions without changing the ticket or creating history. |
 | FR-025 | An authenticated Employee assigned to an `Open` ticket shall start work on that ticket. The operation shall change the status to `InProgress`, preserve the assignment, update the ticket timestamp, and record work-started history. |
-| FR-026 | The system shall convert `Assigned` and `WorkStarted` request-progress facts into generic `NotificationRequestedV1` email requests and record them in a transactional outbox with the accepted ticket operation. |
+| FR-026 | The system shall convert `Assigned`, `WorkStarted`, and `Resolved` request-progress facts into generic `NotificationRequestedV1` email requests and record them in a transactional outbox with the accepted ticket operation. |
 
 ### ServiceDesk settings
 
