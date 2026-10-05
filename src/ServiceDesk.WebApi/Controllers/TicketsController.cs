@@ -15,6 +15,7 @@ public sealed class TicketsController(
     CreateTicketShell createTicketShell,
     AssignTicketShell assignTicketShell,
     StartWorkShell startWorkShell,
+    ResolveTicketShell resolveTicketShell,
     GetAllTicketsShell getAllTicketsShell) : ControllerBase
 {
     [HttpGet]
@@ -121,6 +122,37 @@ public sealed class TicketsController(
         catch (StartWorkException exception)
         {
             return Conflict(CreateStartWorkProblemDetails(exception.Failure.ToString()));
+        }
+    }
+
+    [HttpPost("{ticketId:guid}/resolve")]
+    [Authorize(Roles = nameof(UserRole.Employee) + "," + nameof(UserRole.Administrator))]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Resolve(Guid ticketId, CancellationToken cancellationToken)
+    {
+        if (!AuthenticatedUserId.TryGet(User, out var actorUserId))
+        {
+            return Forbid();
+        }
+
+        var role = User.IsInRole(nameof(UserRole.Administrator)) ? UserRole.Administrator : UserRole.Employee;
+        try
+        {
+            await resolveTicketShell.ExecuteAsync(ticketId, actorUserId, role, cancellationToken);
+            return NoContent();
+        }
+        catch (ResolveTicketException exception) when (exception.Failure == ResolveTicketFailureKind.ActorNotPermitted)
+        {
+            return Forbid();
+        }
+        catch (ResolveTicketException exception)
+        {
+            var problem = new ProblemDetails { Title = "Ticket resolution was rejected.", Detail = exception.Failure.ToString() };
+            return exception.Failure == ResolveTicketFailureKind.TicketNotFound ? NotFound(problem) : Conflict(problem);
         }
     }
 

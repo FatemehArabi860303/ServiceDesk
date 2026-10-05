@@ -4,5 +4,6 @@ public enum TicketHistoryAction
 {
     Created,
     Assigned,
-    WorkStarted
+    WorkStarted,
+    Resolved
 }

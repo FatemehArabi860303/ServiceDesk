@@ -5,6 +5,12 @@ namespace ServiceDesk.Shell.Tickets;
 
 public interface ITicketRepository
 {
+    Task<bool> TryResolveAsync(
+        Ticket ticket,
+        Guid historyId,
+        TicketProgressNotification notification,
+        CancellationToken cancellationToken = default);
+
     Task AddAsync(Ticket ticket, CancellationToken cancellationToken = default);
 
     Task<Ticket?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);

@@ -53,7 +53,7 @@ Closed ───────────────────→ InProgress
 |---|---|---|---|
 | — | Open | Create ticket | A new ticket starts Open. |
 | Open | InProgress | Start work | Work has begun. |
-| InProgress | Resolved | Resolve ticket | Agent reports the issue resolved. |
+| InProgress | Resolved | Resolve ticket | The assigned Employee or an Administrator reports the issue resolved and the Customer is notified. Assignment is preserved; Customer confirmation/closure is separate. |
 | Resolved | Closed | Close ticket | Resolution is confirmed; `ClosedAt` is set. |
 | Resolved | InProgress | Return to work | Resolution did not solve the issue. |
 | Closed | InProgress | Reopen ticket | A closed issue needs further work; `ClosedAt` is cleared. |

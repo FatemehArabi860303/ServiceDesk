@@ -1,3 +1,5 @@
+using ServiceDesk.Core.Users;
+
 namespace ServiceDesk.Core.Tickets;
 
 public sealed class Ticket
@@ -71,6 +73,30 @@ public sealed class Ticket
             TicketHistoryAction.Assigned,
             now,
             employeeUserId));
+    }
+
+    internal void Resolve(Guid actorUserId, UserRole role, Guid historyId, DateTimeOffset now)
+    {
+        if (role is not (UserRole.Employee or UserRole.Administrator))
+        {
+            throw new ResolveTicketException(ResolveTicketFailureKind.ActorNotPermitted);
+        }
+        if (Status != TicketStatus.InProgress)
+        {
+            throw new ResolveTicketException(ResolveTicketFailureKind.TicketNotInProgress);
+        }
+        if (AssignedEmployeeUserId is null)
+        {
+            throw new ResolveTicketException(ResolveTicketFailureKind.TicketUnassigned);
+        }
+        if (role == UserRole.Employee && AssignedEmployeeUserId != actorUserId)
+        {
+            throw new ResolveTicketException(ResolveTicketFailureKind.ActorNotPermitted);
+        }
+
+        Status = TicketStatus.Resolved;
+        UpdatedAt = now;
+        history.Add(new TicketHistory(historyId, Id, actorUserId, TicketHistoryAction.Resolved, now));
     }
 
     internal void StartWork(Guid employeeUserId, Guid workStartedHistoryId, DateTimeOffset now)

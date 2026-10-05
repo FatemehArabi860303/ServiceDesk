@@ -17,7 +17,7 @@
 | BR-011 | Reopening is valid only from `Closed`; it changes status to `InProgress`, clears `ClosedAt`, updates `UpdatedAt`, and creates reopening history. |
 | BR-012 | Returning to work is valid only from `Resolved`; it changes status to `InProgress`, keeps `ClosedAt` null, and creates history. |
 | BR-013 | Starting work is valid only when an `Open` ticket is assigned to the authenticated Employee. It changes status to `InProgress`, preserves the assignment, updates `UpdatedAt`, and creates history. |
-| BR-014 | Resolving is valid only from `InProgress`; it changes status to `Resolved` and creates history. |
+| BR-014 | An authenticated Employee may resolve only their assigned `InProgress` ticket; an Administrator may resolve any assigned `InProgress` ticket without owning its assignment. Customers cannot resolve. Resolution changes status to `Resolved`, preserves assignment and `CreatedAt`, sets `UpdatedAt` to the operation time, and appends exactly one `Resolved` history entry with the authenticated actor and the same time. Ticket, history, and customer notification outbox are committed atomically; rejected operations and losing concurrency races persist none of them. Resolution does not close the ticket; Customer confirmation is separate. |
 | BR-015 | Invalid transitions—including `Open → Closed`, `Open → Resolved`, `Resolved → Open`, `Closed → Resolved`, and `Closed → Open`—must be rejected without changing ticket state or history. |
 
 Status changes are explicit business operations because status determines whether work was performed, a solution was offered, or a solution was confirmed. They cannot be arbitrary field updates.
