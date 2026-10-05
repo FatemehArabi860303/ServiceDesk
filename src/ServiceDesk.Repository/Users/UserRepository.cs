@@ -11,6 +11,9 @@ public sealed class UserRepository(ServiceDeskDbContext dbContext) : IUserReposi
     public Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) =>
         dbContext.Users.SingleOrDefaultAsync(user => user.Id == id, cancellationToken);
 
+    public Task<IReadOnlyList<User>> GetAllAsync(CancellationToken cancellationToken = default) =>
+        dbContext.Users.ToListAsync(cancellationToken).ContinueWith(t => (IReadOnlyList<User>)t.Result, cancellationToken);
+
     public async Task<bool> IsEmailAvailableAsync(string email, CancellationToken cancellationToken = default)
     {
         var canonicalEmail = CreateUserCore.CanonicalizeEmail(email);
