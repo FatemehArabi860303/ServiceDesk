@@ -9,4 +9,6 @@ public interface IUserRepository
     Task<bool> IsEmailAvailableAsync(string email, CancellationToken cancellationToken = default);
 
     Task AddAsync(User user, CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<User>> GetUsersAsync(UserFilter? filter = null, CancellationToken cancellationToken = default);
 }

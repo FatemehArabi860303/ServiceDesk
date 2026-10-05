@@ -11,6 +11,15 @@ public sealed class UserRepository(ServiceDeskDbContext dbContext) : IUserReposi
     public Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) =>
         dbContext.Users.SingleOrDefaultAsync(user => user.Id == id, cancellationToken);
 
+    public async Task<IReadOnlyList<User>> GetUsersAsync(UserFilter? filter = null, CancellationToken cancellationToken = default)
+    {
+        var query = dbContext.Users.AsNoTracking();
+
+        query = applyFilter(query, filter);
+
+        return await query.ToListAsync(cancellationToken);
+    }
+
     public async Task<bool> IsEmailAvailableAsync(string email, CancellationToken cancellationToken = default)
     {
         var canonicalEmail = CreateUserCore.CanonicalizeEmail(email);
@@ -25,13 +34,13 @@ public sealed class UserRepository(ServiceDeskDbContext dbContext) : IUserReposi
         {
             await dbContext.SaveChangesAsync(cancellationToken);
         }
-        catch (DbUpdateException exception) when (IsUniqueEmailViolation(exception))
+        catch (DbUpdateException exception) when (isUniqueEmailViolation(exception))
         {
             throw new UserEmailAlreadyExistsException(exception);
         }
     }
 
-    private static bool IsUniqueEmailViolation(DbUpdateException exception)
+    private static bool isUniqueEmailViolation(DbUpdateException exception)
     {
         if (exception.InnerException is SqlException { Number: 2601 or 2627 })
         {
@@ -41,5 +50,15 @@ public sealed class UserRepository(ServiceDeskDbContext dbContext) : IUserReposi
         return exception.InnerException is SqliteException { SqliteErrorCode: 19 } sqliteException
             && (sqliteException.Message.Contains("UX_Users_Email", StringComparison.Ordinal)
                 || sqliteException.Message.Contains("Users.Email", StringComparison.Ordinal));
+    }
+
+    private static IQueryable<User> applyFilter(
+        IQueryable<User> query,
+        UserFilter? filter)
+    {
+        if (filter?.Role is UserRole role)
+            query = query.Where(x => x.Role == role);
+
+        return query;
     }
 }

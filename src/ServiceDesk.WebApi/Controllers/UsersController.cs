@@ -9,8 +9,9 @@ namespace ServiceDesk.WebApi.Controllers;
 [ApiController]
 [Authorize]
 [Route("api/users")]
-public sealed class UsersController(CreateUserShell createUserShell) : ControllerBase
+public sealed class UsersController(CreateUserShell createUserShell, GetUsersShell getUsersShell) : ControllerBase
 {
+
     [HttpPost]
     [ProducesResponseType<UserResponse>(StatusCodes.Status201Created)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
@@ -59,6 +60,39 @@ public sealed class UsersController(CreateUserShell createUserShell) : Controlle
         user.IsActive,
         user.CreatedAt,
         user.UpdatedAt);
+
+    [HttpGet]
+    [ProducesResponseType(typeof(IEnumerable<UserResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<IEnumerable<UserResponse>>> GetAll(CancellationToken cancellationToken)
+    {
+        if (!AuthenticatedUserId.TryGet(User, out var callerUserId))
+        {
+            return Unauthorized();
+        }
+
+        if (!User.IsInRole(UserRole.Administrator.ToString()))
+        {
+            return Forbid();
+        }
+
+        UserFilter? filter = null;
+        var roleString = HttpContext.Request.Query["role"].FirstOrDefault();
+        if (!string.IsNullOrEmpty(roleString))
+        {
+            if (!Enum.TryParse<UserRole>(roleString, ignoreCase: true, out var parsedRole))
+            {
+                return BadRequest(CreateProblemDetails("Invalid role filter."));
+            }
+
+            filter = new UserFilter(parsedRole);
+        }
+
+        var users = await  getUsersShell.ExecuteAsync(filter, cancellationToken);
+        var resp = users.Select(ToResponse);
+        return Ok(resp);
+    }
 
     private static ProblemDetails CreateProblemDetails(string detail) => new()
     {
