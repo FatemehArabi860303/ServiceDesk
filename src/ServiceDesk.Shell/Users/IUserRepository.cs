@@ -10,5 +10,5 @@ public interface IUserRepository
 
     Task AddAsync(User user, CancellationToken cancellationToken = default);
 
-    Task<IReadOnlyList<User>> GetAllAsync(CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<User>> GetUsersAsync(UserFilter? filter = null, CancellationToken cancellationToken = default);
 }

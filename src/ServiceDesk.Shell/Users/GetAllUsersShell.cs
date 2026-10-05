@@ -2,10 +2,10 @@ using ServiceDesk.Core.Users;
 
 namespace ServiceDesk.Shell.Users;
 
-public sealed class GetAllUsersShell(IUserRepository userRepository)
+public sealed class GetUsersShell(IUserRepository userRepository)
 {
-    public Task<IReadOnlyList<User>> ExecuteAsync(CancellationToken cancellationToken = default)
+    public Task<IReadOnlyList<User>> ExecuteAsync(UserFilter? filter = null, CancellationToken cancellationToken = default)
     {
-        return userRepository.GetAllAsync(cancellationToken);
+        return userRepository.GetUsersAsync(filter, cancellationToken);
     }
 }

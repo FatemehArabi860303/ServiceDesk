@@ -9,7 +9,7 @@ namespace ServiceDesk.WebApi.Controllers;
 [ApiController]
 [Authorize]
 [Route("api/users")]
-public sealed class UsersController(CreateUserShell createUserShell, GetAllUsersShell getAllUsersShell) : ControllerBase
+public sealed class UsersController(CreateUserShell createUserShell, GetUsersShell getUsersShell) : ControllerBase
 {
 
     [HttpPost]
@@ -71,13 +71,25 @@ public sealed class UsersController(CreateUserShell createUserShell, GetAllUsers
         {
             return Unauthorized();
         }
-        // Only administrators may list all users
+
         if (!User.IsInRole(UserRole.Administrator.ToString()))
         {
             return Forbid();
         }
 
-        var users = await getAllUsersShell.ExecuteAsync(cancellationToken);
+        UserFilter? filter = null;
+        var roleString = HttpContext.Request.Query["role"].FirstOrDefault();
+        if (!string.IsNullOrEmpty(roleString))
+        {
+            if (!Enum.TryParse<UserRole>(roleString, ignoreCase: true, out var parsedRole))
+            {
+                return BadRequest(CreateProblemDetails("Invalid role filter."));
+            }
+
+            filter = new UserFilter(parsedRole);
+        }
+
+        var users = await  getUsersShell.ExecuteAsync(filter, cancellationToken);
         var resp = users.Select(ToResponse);
         return Ok(resp);
     }

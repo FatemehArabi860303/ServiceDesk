@@ -11,8 +11,17 @@ public sealed class UserRepository(ServiceDeskDbContext dbContext) : IUserReposi
     public Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) =>
         dbContext.Users.SingleOrDefaultAsync(user => user.Id == id, cancellationToken);
 
-    public Task<IReadOnlyList<User>> GetAllAsync(CancellationToken cancellationToken = default) =>
-        dbContext.Users.ToListAsync(cancellationToken).ContinueWith(t => (IReadOnlyList<User>)t.Result, cancellationToken);
+    public Task<IReadOnlyList<User>> GetUsersAsync(UserFilter? filter = null, CancellationToken cancellationToken = default)
+    {
+        var query = dbContext.Users.AsQueryable();
+
+        if (filter?.Role is not null)
+        {
+            query = query.Where(u => u.Role == filter.Role.Value);
+        }
+
+        return query.ToListAsync(cancellationToken).ContinueWith(t => (IReadOnlyList<User>)t.Result, cancellationToken);
+    }
 
     public async Task<bool> IsEmailAvailableAsync(string email, CancellationToken cancellationToken = default)
     {
