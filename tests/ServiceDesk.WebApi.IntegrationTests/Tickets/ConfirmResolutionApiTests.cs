@@ -24,18 +24,18 @@ public sealed class ConfirmResolutionApiTests(ServiceDeskApiFactory factory) : I
 
         // Act
         var response = await client.PostAsJsonAsync($"/api/tickets/{ticket.Id}/confirm-resolution", new { actorUserId = Guid.NewGuid() });
-
-        // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
         using var scope = factory.Services.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<ServiceDeskDbContext>();
         var stored = await context.Tickets.Include(t => t.History).SingleAsync(t => t.Id == ticket.Id);
+        var history = stored.History.Single(h => h.Action == TicketHistoryAction.Closed);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
         stored.Status.Should().Be(TicketStatus.Closed);
         stored.ClosedAt.Should().NotBeNull().And.Be(stored.UpdatedAt);
         stored.AssignedEmployeeUserId.Should().Be(ticket.AssignedEmployeeUserId);
         stored.CreatedAt.Should().Be(ticket.CreatedAt);
         stored.CustomerUserId.Should().Be(customer.Id);
-        var history = stored.History.Single(h => h.Action == TicketHistoryAction.Closed);
         history.ActorUserId.Should().Be(customer.Id);
         history.OccurredAt.Should().Be(stored.ClosedAt!.Value);
     }
