@@ -57,7 +57,7 @@ Until future Feature/category eligibility is configured, an authenticated Employ
 | FR-018 | The system shall add comments as attributable, immutable history entries. |
 | FR-019 | The system shall retrieve a ticket's history in chronological order. |
 | FR-020 | An authenticated Employee shall resolve their assigned `InProgress` ticket; an Administrator may resolve any assigned `InProgress` ticket. `POST /api/tickets/{ticketId}/resolve` accepts no body and uses JWT identity and role. Success returns 204, changes status to `Resolved`, preserves assignment and creation time, updates `UpdatedAt`, records the actor in history, and atomically records a customer email notification. Customers are forbidden; missing tickets return 404 and invalid state or lost races return 409. Customer confirmation/closure remains separate. |
-| FR-021 | The system shall close a `Resolved` ticket, changing it to `Closed`, setting `ClosedAt`, and recording closure. |
+| FR-021 | Only an authenticated Customer shall confirm their own `Resolved` ticket through `POST /api/tickets/{ticketId}/confirm-resolution`, with no request body and identity from JWT. Success returns 204, changes status to `Closed`, sets `ClosedAt` and `UpdatedAt` to the operation time, preserves assignment, ownership and `CreatedAt`, and atomically appends one `Closed` history entry attributed to the Customer. Missing/invalid JWT returns 401; Employee, Administrator or another Customer returns 403; a missing ticket returns 404; invalid state, repeated confirmation or a lost concurrency race returns 409 without partial changes or duplicate history. Confirmation does not send a notification. |
 | FR-022 | The system shall return a `Resolved` ticket to `InProgress` when more work is needed. |
 | FR-023 | The system shall reopen a `Closed` ticket to `InProgress`, clear `ClosedAt`, and record reopening. |
 | FR-024 | The system shall reject invalid status transitions without changing the ticket or creating history. |
@@ -151,5 +151,5 @@ Ticket changes must be protected from lost updates. For self-assignment, two Emp
 ## Deliberately undecided
 
 - Exact maximum lengths and formatting rules for names, title, description, and comments.
-- Exact role-to-operation permissions beyond Employee self-assignment, and who confirms a resolution.
+- Exact role-to-operation permissions for remaining unimplemented operations.
 - Whether Users may ever be deactivated or deleted; any policy must preserve tickets and history.

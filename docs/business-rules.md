@@ -13,7 +13,7 @@
 | BR-007 | A valid authenticated Employee may self-assign only an `Open`, unassigned ticket to that Employee's authenticated User identity. Reassignment is separate future work. |
 | BR-008 | Mutable ticket details are title, description, priority, assignment, and status. Every accepted material change updates `UpdatedAt`. Self-assignment does not change ticket status. |
 | BR-009 | `ClosedAt` must be `null` whenever status is not `Closed`. |
-| BR-010 | Closing a ticket is valid only from `Resolved`; it changes status to `Closed`, sets `ClosedAt`, updates `UpdatedAt`, and creates history. |
+| BR-010 | Only the authenticated owning Customer may confirm a resolution. Confirmation is valid only from `Resolved` and changes status to `Closed`, sets `ClosedAt` and `UpdatedAt` to the same operation time, and appends exactly one `Closed` history entry with that Customer as actor and the same occurrence time. Ownership, assignment and `CreatedAt` are preserved. Employee and Administrator cannot confirm on behalf of a Customer. Invalid or repeated confirmation is rejected; a losing concurrent confirmation changes nothing and creates no history. Closure and history persist atomically. Confirmation does not create a notification. |
 | BR-011 | Reopening is valid only from `Closed`; it changes status to `InProgress`, clears `ClosedAt`, updates `UpdatedAt`, and creates reopening history. |
 | BR-012 | Returning to work is valid only from `Resolved`; it changes status to `InProgress`, keeps `ClosedAt` null, and creates history. |
 | BR-013 | Starting work is valid only when an `Open` ticket is assigned to the authenticated Employee. It changes status to `InProgress`, preserves the assignment, updates `UpdatedAt`, and creates history. |
@@ -101,7 +101,7 @@ The business rules describe what is allowed for valid records. Authentication cr
 
 ## Open policy decisions
 
-- Who is permitted to reassign, close, or only resolve a ticket.
+- Who is permitted to reassign a ticket.
 - Whether customer-created tickets are exposed directly at initial release or via an authenticated customer portal later.
 - User retention/deactivation policy.
 - Field-length limits and whether comments have a maximum size.

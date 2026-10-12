@@ -21,6 +21,7 @@ public sealed class TicketConfiguration : IEntityTypeConfiguration<Ticket>
         builder.Property(ticket => ticket.Status).HasConversion<string>().HasMaxLength(20).IsRequired();
         builder.Property(ticket => ticket.CreatedAt).IsRequired();
         builder.Property(ticket => ticket.UpdatedAt).IsRequired();
+        builder.Property(ticket => ticket.ClosedAt);
 
         builder.HasOne<User>()
             .WithMany()

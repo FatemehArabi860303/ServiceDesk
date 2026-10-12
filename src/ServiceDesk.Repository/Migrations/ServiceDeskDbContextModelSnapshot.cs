@@ -30,6 +30,9 @@ namespace ServiceDesk.Repository.Migrations
                     b.Property<Guid?>("AssignedEmployeeUserId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<DateTimeOffset?>("ClosedAt")
+                        .HasColumnType("datetimeoffset");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("datetimeoffset");
 

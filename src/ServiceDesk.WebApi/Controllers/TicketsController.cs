@@ -16,6 +16,7 @@ public sealed class TicketsController(
     AssignTicketShell assignTicketShell,
     StartWorkShell startWorkShell,
     ResolveTicketShell resolveTicketShell,
+    ConfirmResolutionShell confirmResolutionShell,
     GetAllTicketsShell getAllTicketsShell) : ControllerBase
 {
     [HttpGet]
@@ -153,6 +154,36 @@ public sealed class TicketsController(
         {
             var problem = new ProblemDetails { Title = "Ticket resolution was rejected.", Detail = exception.Failure.ToString() };
             return exception.Failure == ResolveTicketFailureKind.TicketNotFound ? NotFound(problem) : Conflict(problem);
+        }
+    }
+
+    [HttpPost("{ticketId:guid}/confirm-resolution")]
+    [Authorize(Roles = nameof(UserRole.Customer))]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> ConfirmResolution(Guid ticketId, CancellationToken cancellationToken)
+    {
+        if (!AuthenticatedUserId.TryGet(User, out var actorUserId))
+        {
+            return Forbid();
+        }
+
+        try
+        {
+            await confirmResolutionShell.ExecuteAsync(ticketId, actorUserId, UserRole.Customer, cancellationToken);
+            return NoContent();
+        }
+        catch (ConfirmResolutionException exception) when (exception.Failure == ConfirmResolutionFailureKind.ActorNotPermitted)
+        {
+            return Forbid();
+        }
+        catch (ConfirmResolutionException exception)
+        {
+            var problem = new ProblemDetails { Title = "Resolution confirmation was rejected.", Detail = exception.Failure.ToString() };
+            return exception.Failure == ConfirmResolutionFailureKind.TicketNotFound ? NotFound(problem) : Conflict(problem);
         }
     }
 
