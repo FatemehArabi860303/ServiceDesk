@@ -50,6 +50,26 @@ public sealed class Ticket
 
     public DateTimeOffset UpdatedAt { get; private set; }
 
+    public DateTimeOffset? ClosedAt { get; private set; }
+
+    internal void ConfirmResolution(Guid actorUserId, UserRole role, Guid historyId, DateTimeOffset now)
+    {
+        if (role != UserRole.Customer || actorUserId != CustomerUserId)
+        {
+            throw new ConfirmResolutionException(ConfirmResolutionFailureKind.ActorNotPermitted);
+        }
+
+        if (Status != TicketStatus.Resolved)
+        {
+            throw new ConfirmResolutionException(ConfirmResolutionFailureKind.TicketNotResolved);
+        }
+
+        Status = TicketStatus.Closed;
+        ClosedAt = now;
+        UpdatedAt = now;
+        history.Add(new TicketHistory(historyId, Id, actorUserId, TicketHistoryAction.Closed, now));
+    }
+
     public IReadOnlyList<TicketHistory> History => history.AsReadOnly();
 
     internal void Assign(Guid employeeUserId, Guid assignmentHistoryId, DateTimeOffset now)

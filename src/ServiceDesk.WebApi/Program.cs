@@ -50,6 +50,7 @@ builder.Services.AddScoped<CreateTicketShell>();
 builder.Services.AddScoped<AssignTicketShell>();
 builder.Services.AddScoped<StartWorkShell>();
 builder.Services.AddScoped<ResolveTicketShell>();
+builder.Services.AddScoped<ConfirmResolutionShell>();
 builder.Services.AddScoped<GetAllTicketsShell>();
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 

@@ -10,6 +10,33 @@ namespace ServiceDesk.Repository.Tickets;
 
 public sealed class TicketRepository(ServiceDeskDbContext dbContext) : ITicketRepository
 {
+    public async Task<bool> TryConfirmResolutionAsync(
+        Ticket ticket,
+        Guid historyId,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(ticket);
+        var history = ticket.History.Single(item => item.Id == historyId);
+        await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
+        var rowsAffected = await dbContext.Tickets
+            .Where(stored => stored.Id == ticket.Id
+                && stored.Status == TicketStatus.Resolved
+                && stored.CustomerUserId == history.ActorUserId)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(stored => stored.Status, ticket.Status)
+                .SetProperty(stored => stored.ClosedAt, ticket.ClosedAt)
+                .SetProperty(stored => stored.UpdatedAt, ticket.UpdatedAt), cancellationToken);
+        if (rowsAffected != 1)
+        {
+            return false;
+        }
+
+        dbContext.TicketHistories.Add(history);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return true;
+    }
+
     public async Task AddAsync(Ticket ticket, CancellationToken cancellationToken = default)
     {
         dbContext.Tickets.Add(ticket);

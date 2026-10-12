@@ -54,7 +54,7 @@ Closed ───────────────────→ InProgress
 | — | Open | Create ticket | A new ticket starts Open. |
 | Open | InProgress | Start work | Work has begun. |
 | InProgress | Resolved | Resolve ticket | The assigned Employee or an Administrator reports the issue resolved and the Customer is notified. Assignment is preserved; Customer confirmation/closure is separate. |
-| Resolved | Closed | Close ticket | Resolution is confirmed; `ClosedAt` is set. |
+| Resolved | Closed | Confirm resolution | Only the authenticated owning Customer confirms; Employee and Administrator cannot. `ClosedAt` and `UpdatedAt` are set to the operation time; assignment, ownership and `CreatedAt` are preserved. Closure and one `Closed` history entry (Customer actor, same time) persist atomically. Repeated/invalid confirmation and losing races are rejected. No confirmation notification is produced. |
 | Resolved | InProgress | Return to work | Resolution did not solve the issue. |
 | Closed | InProgress | Reopen ticket | A closed issue needs further work; `ClosedAt` is cleared. |
 
@@ -118,5 +118,5 @@ Version one excludes SMS delivery, attachments, SLA management, escalation engin
 1. The system serves one organisation; multi-tenancy is out of scope.
 2. User email addresses are unique system-wide.
 3. Assignment does not itself force a status change; starting work is explicit.
-4. Detailed authorization policies beyond Employee self-assignment and approved authentication and credential provisioning, including who may reassign, close, or confirm a ticket resolution, remain to be defined.
+4. Authorization for remaining unimplemented operations, including reassignment, remains to be defined. Resolution confirmation is restricted to the owning Customer.
 5. No deletion policy for Users is fixed yet; it must preserve ticket integrity and history.
