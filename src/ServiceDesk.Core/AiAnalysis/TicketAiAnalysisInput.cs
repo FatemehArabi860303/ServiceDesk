@@ -1,4 +1,4 @@
-﻿    namespace ServiceDesk.Core.AiAnalysis;
+﻿namespace ServiceDesk.Core.AiAnalysis;
 
 public sealed record TicketAiAnalysisInput(
     Guid TicketId,
