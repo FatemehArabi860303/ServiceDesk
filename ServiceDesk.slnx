@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="ServiceDesk.AI/ServiceDesk.AI.csproj" Id="2ee23a17-cd4a-42c5-a2a7-32c41f9977c8" />
     <Project Path="src/Notification.Contracts/Notification.Contracts.csproj" />
     <Project Path="src/NotificationService.Email/NotificationService.Email.csproj" />
     <Project Path="src/NotificationService.Messaging/NotificationService.Messaging.csproj" />
@@ -13,6 +14,7 @@
     <Project Path="src/ServiceDesk.WebApi/ServiceDesk.WebApi.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="ServiceDesk.AI.Tests/ServiceDesk.AI.Tests.csproj" Id="a8f1a7ea-a865-4c40-99a9-f86a02a3d0b4" />
     <Project Path="tests/NotificationService.Messaging.Tests/NotificationService.Messaging.Tests.csproj" />
     <Project Path="tests/NotificationService.Shell.Tests/NotificationService.Shell.Tests.csproj" />
     <Project Path="tests/ServiceDesk.Core.Tests/ServiceDesk.Core.Tests.csproj" />
