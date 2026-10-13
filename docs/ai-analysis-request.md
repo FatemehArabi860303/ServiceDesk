@@ -1,54 +1,114 @@
 # AI-Assisted Customer Request Analysis
 
-## Architecture Decision
+## Submission Boundary
 
-AI analysis is asynchronous and must not block customer ticket submission.
+Customer ticket submission depends on ticket business validation and the
+ticket database transaction.
 
-### Submission Workflow
+1. WebApi invokes CreateTicketShell.
+2. CreateTicketShell invokes the existing pure CreateTicketCore.
+3. Shell requests atomic persistence through a repository abstraction.
+4. Repository commits the ticket and TicketAiAnalysisRequestedV1 Outbox entry
+   in the same database transaction.
+5. After successful persistence, WebApi returns success and the ticket ID.
 
-1. CreateTicketShell validates the customer and invokes CreateTicketCore.
-2. Core creates the ticket using existing business rules.
-3. Shell requests persistence of the ticket and its AI-analysis intent.
-4. Repository saves the ticket, pending analysis record, and outbox event atomically.
-5. Shell returns the created ticket to the customer.
+Ticket submission does not invoke AI analysis, call OpenAI, publish directly
+to RabbitMQ, or start fire-and-forget background tasks.
 
-### Analysis Workflow
+A failed ticket database transaction fails ticket submission.
 
-1. Outbox publisher delivers the analysis-requested event.
-2. AI worker receives the event and invokes AnalyzeRequestShell.
-3. Shell retrieves the analysis context through repository abstractions.
-4. Shell invokes ITicketAiAnalyzer.
-5. OpenAI adapter communicates with the external AI service.
-6. Core validates the result and determines the next analysis state.
-7. Shell persists the resulting state.
+## Publication Boundary
 
-### ISFC Rules
+ServiceDesk.NotificationWorker hosts the existing Outbox publisher.
 
-- Core must be deterministic and free of I/O.
-- Shell coordinates operations and invokes pure Core functions.
-- Repository performs persistence.
-- Infrastructure adapters perform external communication.
-- AI responses are untrusted until validated by Core.
+The publisher delivers committed Outbox events to RabbitMQ asynchronously.
+An event remains available for later delivery when RabbitMQ is unavailable.
 
-### DIP Rules
+AI-analysis events use separate message contracts and routing from email
+notification events.
 
-- Shell owns ITicketAiAnalyzer.
-- OpenAI adapter implements ITicketAiAnalyzer.
-- Shell must not reference OpenAI-specific types.
-- Dependency injection supplies concrete implementations.
+Publisher support for AI-analysis events must be implemented explicitly;
+the notification publisher must not be assumed to support arbitrary events.
 
-### Failure Isolation
+## Analysis Boundary
 
-Ticket submission does not invoke OpenAI.
+A dedicated AI consumer host receives TicketAiAnalysisRequestedV1.
 
-Provider failures do not invalidate saved tickets.
+1. The consumer invokes AnalyzeRequestShell.
+2. Shell retrieves analysis facts through repository abstractions.
+3. Shell invokes ITicketAiAnalyzer.
+4. OpenAiTicketAnalyzer in ServiceDesk.AI implements that interface.
+5. Core validates the returned analysis and makes business decisions.
+6. Shell persists analysis through a repository abstraction.
 
-Transient failures are retried with bounded attempts.
+The consumer handles transport concerns.
+The Shell handles use-case orchestration.
+The OpenAI adapter handles provider HTTP communication and response parsing.
 
-Permanent failures are recorded without modifying ticket status.
+The OpenAI adapter does not consume RabbitMQ messages.
 
-### Consistency
+## Contracts and Names
 
-Ticket creation, pending analysis creation, and outbox insertion must succeed or fail atomically.
+- Backlog item: AiAnalysisRequest
+- Shell analyzer interface: ITicketAiAnalyzer
+- Analyzer operation: AnalyzeAsync
+- Existing Core input: TicketAiAnalysisInput
+- Existing Core result: TicketAiAnalysisResult
+- Background use case: AnalyzeRequestShell
+- OpenAI adapter: OpenAiTicketAnalyzer
+- Persisted analysis: TicketAiAnalysis
+- Integration event: TicketAiAnalysisRequestedV1
+- Provider configuration: OpenAiOptions
+- Provider registration: AddOpenAiAnalysis
 
-Duplicate event delivery must not generate duplicate completed analyses.
+ITicketAiAnalyzer returns the complete provider-independent result contract.
+Core validates business requirements after the provider returns.
+
+Provider failures must not be represented as successful results with
+fabricated recommendation values.
+
+## Dependency Direction
+
+Core has no infrastructure dependencies.
+
+Shell depends on Core and owns the abstractions required by its use cases.
+
+ServiceDesk.AI implements the analyzer interface owned by Shell.
+ServiceDesk.Repository implements persistence abstractions owned by Shell.
+ServiceDesk.Messaging implements messaging infrastructure.
+
+WebApi composes ticket-submission dependencies.
+The dedicated AI consumer host composes background-analysis dependencies.
+
+OpenAI configuration and AddOpenAiAnalysis belong to the AI consumer host.
+The existing Outbox publisher does not require OpenAI configuration.
+
+## Failure Independence
+
+- OpenAI unavailable: the committed ticket remains submitted.
+- OpenAI timeout: the committed ticket remains submitted.
+- Invalid AI response: the committed ticket remains submitted.
+- RabbitMQ unavailable: submission succeeds and the Outbox event is retained.
+- AI consumer offline: submission succeeds and the durable message awaits processing.
+- Ticket database transaction failure: submission fails.
+
+Durable queue configuration and message acknowledgement behavior must be
+verified when the consumer is implemented.
+
+## Advisory Results
+
+Analysis is persisted separately from the ticket.
+
+AI recommendations must not automatically change ticket status, priority,
+assignment, or history.
+
+## Incremental Implementation
+
+Contracts are established before implementing infrastructure.
+
+Atomic submission integration, AI event publication, consumer orchestration,
+analysis persistence, failure handling, retries, and concurrency protection
+are introduced in separate tested increments.
+
+Existing Core analysis contracts are retained.
+Implementation ordering must respect dependencies between these increments.
