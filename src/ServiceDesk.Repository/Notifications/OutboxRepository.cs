@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Notification.Contracts;
 using ServiceDesk.Shell.Notifications;
 
 namespace ServiceDesk.Repository.Notifications;
@@ -13,8 +14,10 @@ public sealed class OutboxRepository(ServiceDeskDbContext dbContext) : IOutboxRe
     {
         var messageId = await dbContext.OutboxMessages
             .AsNoTracking()
-            .Where(message => message.PublishedAt == null
-                && (message.ClaimExpiresAt == null || message.ClaimExpiresAt <= now))
+            .Where(message => message.Type == NotificationRequestedV1.Type
+                && message.PublishedAt == null
+                && (message.ClaimExpiresAt == null
+                    || message.ClaimExpiresAt <= now))
             .Select(message => (Guid?)message.Id)
             .FirstOrDefaultAsync(cancellationToken);
 
@@ -25,11 +28,16 @@ public sealed class OutboxRepository(ServiceDeskDbContext dbContext) : IOutboxRe
 
         var rowsAffected = await dbContext.OutboxMessages
             .Where(message => message.Id == messageId
+                && message.Type == NotificationRequestedV1.Type
                 && message.PublishedAt == null
-                && (message.ClaimExpiresAt == null || message.ClaimExpiresAt <= now))
+                && (message.ClaimExpiresAt == null
+                    || message.ClaimExpiresAt <= now))
             .ExecuteUpdateAsync(setters => setters
                 .SetProperty(message => message.ClaimToken, claimToken)
-                .SetProperty(message => message.ClaimExpiresAt, claimExpiresAt), cancellationToken);
+                .SetProperty(
+                    message => message.ClaimExpiresAt,
+                    claimExpiresAt),
+                cancellationToken);
 
         if (rowsAffected != 1)
         {
@@ -38,8 +46,12 @@ public sealed class OutboxRepository(ServiceDeskDbContext dbContext) : IOutboxRe
 
         return await dbContext.OutboxMessages
             .AsNoTracking()
-            .Where(message => message.Id == messageId && message.ClaimToken == claimToken)
-            .Select(message => new OutboxMessageToPublish(message.Id, message.Type, message.Payload))
+            .Where(message => message.Id == messageId
+                && message.ClaimToken == claimToken)
+            .Select(message => new OutboxMessageToPublish(
+                message.Id,
+                message.Type,
+                message.Payload))
             .SingleAsync(cancellationToken);
     }
 
@@ -51,12 +63,16 @@ public sealed class OutboxRepository(ServiceDeskDbContext dbContext) : IOutboxRe
     {
         var rowsAffected = await dbContext.OutboxMessages
             .Where(message => message.Id == messageId
+                && message.Type == NotificationRequestedV1.Type
                 && message.PublishedAt == null
                 && message.ClaimToken == claimToken)
             .ExecuteUpdateAsync(setters => setters
                 .SetProperty(message => message.PublishedAt, publishedAt)
                 .SetProperty(message => message.ClaimToken, (Guid?)null)
-                .SetProperty(message => message.ClaimExpiresAt, (DateTimeOffset?)null), cancellationToken);
+                .SetProperty(
+                    message => message.ClaimExpiresAt,
+                    (DateTimeOffset?)null),
+                cancellationToken);
 
         return rowsAffected == 1;
     }
