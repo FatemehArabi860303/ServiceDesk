@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Configuration;
 using RabbitMQ.Client;
 using ServiceDesk.Messaging;
 using ServiceDesk.NotificationWorker;
@@ -6,14 +5,18 @@ using ServiceDesk.Repository;
 using ServiceDesk.Shell.Notifications;
 
 var builder = Host.CreateApplicationBuilder(args);
+
 var rabbitMqOptions = builder.Configuration
-    .GetRequiredSection(RabbitMqOptions.SectionName)
-    .Get<RabbitMqOptions>()
-    ?? throw new InvalidOperationException("RabbitMQ configuration is required.");
+                          .GetRequiredSection(RabbitMqOptions.SectionName)
+                          .Get<RabbitMqOptions>()
+                      ?? throw new InvalidOperationException(
+                          "RabbitMQ configuration is required.");
+
 rabbitMqOptions.Validate();
 
 builder.Services.AddServiceDeskRepository(builder.Configuration);
 builder.Services.AddSingleton(rabbitMqOptions);
+
 builder.Services.AddSingleton<IConnectionFactory>(_ => new ConnectionFactory
 {
     HostName = rabbitMqOptions.HostName,
@@ -23,7 +26,17 @@ builder.Services.AddSingleton<IConnectionFactory>(_ => new ConnectionFactory
     Password = rabbitMqOptions.Password,
     DispatchConsumersAsync = true
 });
-builder.Services.AddSingleton<INotificationRequestedPublisher, RabbitMqNotificationRequestedPublisher>();
+
+builder.Services.AddSingleton(new RabbitMqOutboxRouting(
+[
+    RabbitMqOutboxRoute.Notification,
+    RabbitMqOutboxRoute.AiAnalysis
+]));
+
+builder.Services.AddSingleton<
+    IOutboxMessagePublisher,
+    RabbitMqOutboxMessagePublisher>();
+
 builder.Services.AddScoped<ProcessOutboxShell>();
 builder.Services.AddHostedService<OutboxPublisherWorker>();
 

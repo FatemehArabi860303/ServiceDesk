@@ -32,7 +32,9 @@ public sealed class OutboxPublisherWorker(
             }
             catch (Exception exception)
             {
-                logger.LogError(exception, "Unable to publish a ServiceDesk request-progress outbox message.");
+                logger.LogError(
+                    exception,
+                    "Unable to publish a ServiceDesk outbox message.");
                 await Task.Delay(IdleDelay, stoppingToken);
             }
         }

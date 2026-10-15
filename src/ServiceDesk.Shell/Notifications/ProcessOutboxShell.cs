@@ -2,14 +2,16 @@ namespace ServiceDesk.Shell.Notifications;
 
 public sealed class ProcessOutboxShell(
     IOutboxRepository outboxRepository,
-    INotificationRequestedPublisher publisher)
+    IOutboxMessagePublisher publisher)
 {
     private static readonly TimeSpan ClaimDuration = TimeSpan.FromMinutes(5);
 
-    public async Task<bool> ProcessNextAsync(CancellationToken cancellationToken = default)
+    public async Task<bool> ProcessNextAsync(
+        CancellationToken cancellationToken = default)
     {
         var now = DateTimeOffset.UtcNow;
         var claimToken = Guid.NewGuid();
+
         var message = await outboxRepository.TryClaimNextAsync(
             claimToken,
             now,
@@ -22,6 +24,7 @@ public sealed class ProcessOutboxShell(
         }
 
         await publisher.PublishAsync(message, cancellationToken);
+
         return await outboxRepository.MarkPublishedAsync(
             message.Id,
             claimToken,

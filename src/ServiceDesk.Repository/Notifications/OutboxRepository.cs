@@ -1,10 +1,10 @@
 using Microsoft.EntityFrameworkCore;
-using Notification.Contracts;
 using ServiceDesk.Shell.Notifications;
 
 namespace ServiceDesk.Repository.Notifications;
 
-public sealed class OutboxRepository(ServiceDeskDbContext dbContext) : IOutboxRepository
+public sealed class OutboxRepository(ServiceDeskDbContext dbContext)
+    : IOutboxRepository
 {
     public async Task<OutboxMessageToPublish?> TryClaimNextAsync(
         Guid claimToken,
@@ -14,8 +14,7 @@ public sealed class OutboxRepository(ServiceDeskDbContext dbContext) : IOutboxRe
     {
         var messageId = await dbContext.OutboxMessages
             .AsNoTracking()
-            .Where(message => message.Type == NotificationRequestedV1.Type
-                && message.PublishedAt == null
+            .Where(message => message.PublishedAt == null
                 && (message.ClaimExpiresAt == null
                     || message.ClaimExpiresAt <= now))
             .Select(message => (Guid?)message.Id)
@@ -28,7 +27,6 @@ public sealed class OutboxRepository(ServiceDeskDbContext dbContext) : IOutboxRe
 
         var rowsAffected = await dbContext.OutboxMessages
             .Where(message => message.Id == messageId
-                && message.Type == NotificationRequestedV1.Type
                 && message.PublishedAt == null
                 && (message.ClaimExpiresAt == null
                     || message.ClaimExpiresAt <= now))
@@ -63,7 +61,6 @@ public sealed class OutboxRepository(ServiceDeskDbContext dbContext) : IOutboxRe
     {
         var rowsAffected = await dbContext.OutboxMessages
             .Where(message => message.Id == messageId
-                && message.Type == NotificationRequestedV1.Type
                 && message.PublishedAt == null
                 && message.ClaimToken == claimToken)
             .ExecuteUpdateAsync(setters => setters

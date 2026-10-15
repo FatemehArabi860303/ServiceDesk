@@ -1,8 +1,5 @@
 namespace ServiceDesk.Shell.Notifications;
 
-public interface INotificationRequestedPublisher
+public interface INotificationRequestedPublisher : IOutboxMessagePublisher
 {
-    Task PublishAsync(
-        OutboxMessageToPublish message,
-        CancellationToken cancellationToken = default);
 }

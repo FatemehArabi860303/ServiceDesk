@@ -176,7 +176,7 @@ public sealed class CreateTicketOutboxTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task TryClaimNextAsync_WithOnlyAnalysisRequest_LeavesItPending()
+    public async Task TryClaimNextAsync_WithOnlyAnalysisRequest_ClaimsItForPublication()
     {
         // Arrange
         User customer = await seedCustomerAsync();
@@ -203,19 +203,20 @@ public sealed class CreateTicketOutboxTests : IAsyncLifetime
             now.AddMinutes(5));
 
         await using ServiceDeskDbContext verification = new(options);
-        OutboxMessage storedMessage = await verification.OutboxMessages
-            .SingleAsync();
+        OutboxMessage stored = await verification.OutboxMessages.SingleAsync();
 
         // Assert
-        claimed.Should().BeNull();
-        storedMessage.Type.Should().Be(TicketAiAnalysisRequestedV1.Type);
-        storedMessage.PublishedAt.Should().BeNull();
-        storedMessage.ClaimToken.Should().BeNull();
-        storedMessage.ClaimExpiresAt.Should().BeNull();
+        claimed.Should().NotBeNull();
+        claimed!.Id.Should().Be(stored.Id);
+        claimed.Type.Should().Be(TicketAiAnalysisRequestedV1.Type);
+        claimed.Payload.Should().Be(stored.Payload);
+        stored.PublishedAt.Should().BeNull();
+        stored.ClaimToken.Should().Be(claimToken);
+        stored.ClaimExpiresAt.Should().NotBeNull();
     }
 
     [Fact]
-    public async Task TryClaimNextAsync_WithMixedEvents_ClaimsNotificationAndRetainsAnalysisRequest()
+    public async Task TryClaimNextAsync_WithMixedEvents_ClaimsBothWithoutPublishingEither()
     {
         // Arrange
         User customer = await seedCustomerAsync();
@@ -251,29 +252,40 @@ public sealed class CreateTicketOutboxTests : IAsyncLifetime
 
         await using ServiceDeskDbContext context = new(options);
         OutboxRepository repository = new(context);
-        Guid claimToken = Guid.NewGuid();
+        Guid firstToken = Guid.NewGuid();
+        Guid secondToken = Guid.NewGuid();
+
+        string[] expectedTypes =
+        [
+            NotificationRequestedV1.Type,
+        TicketAiAnalysisRequestedV1.Type
+        ];
 
         // Act
-        OutboxMessageToPublish? claimed = await repository.TryClaimNextAsync(
-            claimToken,
+        OutboxMessageToPublish? first = await repository.TryClaimNextAsync(
+            firstToken,
             now,
             now.AddMinutes(5));
 
-        await using ServiceDeskDbContext verification = new(options);
-        OutboxMessage analysisMessage = await verification.OutboxMessages
-            .SingleAsync(message =>
-                message.Type == TicketAiAnalysisRequestedV1.Type);
+        OutboxMessageToPublish? second = await repository.TryClaimNextAsync(
+            secondToken,
+            now,
+            now.AddMinutes(5));
 
+        string?[] actualTypes = [first?.Type, second?.Type];
+
+        await using ServiceDeskDbContext verification = new(options);
         int outboxCount = await verification.OutboxMessages.CountAsync();
+        int publishedCount = await verification.OutboxMessages
+            .CountAsync(message => message.PublishedAt != null);
 
         // Assert
-        claimed.Should().NotBeNull();
-        claimed!.Id.Should().Be(notificationId);
-        claimed.Type.Should().Be(NotificationRequestedV1.Type);
+        first.Should().NotBeNull();
+        second.Should().NotBeNull();
+        first!.Id.Should().NotBe(second!.Id);
+        actualTypes.Should().BeEquivalentTo(expectedTypes);
         outboxCount.Should().Be(2);
-        analysisMessage.PublishedAt.Should().BeNull();
-        analysisMessage.ClaimToken.Should().BeNull();
-        analysisMessage.ClaimExpiresAt.Should().BeNull();
+        publishedCount.Should().Be(0);
     }
 
     private async Task<User> seedCustomerAsync()

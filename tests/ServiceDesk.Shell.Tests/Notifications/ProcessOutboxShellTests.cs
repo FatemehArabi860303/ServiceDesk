@@ -7,25 +7,25 @@ namespace ServiceDesk.Shell.Tests.Notifications;
 public sealed class ProcessOutboxShellTests
 {
     [Fact]
-    public async Task ProcessNextAsync_WhenNoMessageIsPending_DoesNotPublish()
+    public async Task ProcessNextAsync_WhenNoMessageExists_DoesNotPublishOrMark()
     {
         // Arrange
-        var repository = Substitute.For<IOutboxRepository>();
-        var publisher = Substitute.For<INotificationRequestedPublisher>();
-        repository.TryClaimNextAsync(
-                Arg.Any<Guid>(),
-                Arg.Any<DateTimeOffset>(),
-                Arg.Any<DateTimeOffset>(),
-                Arg.Any<CancellationToken>())
-            .Returns((OutboxMessageToPublish?)null);
-        var shell = new ProcessOutboxShell(repository, publisher);
+        IOutboxRepository repository = Substitute.For<IOutboxRepository>();
+        IOutboxMessagePublisher publisher =
+            Substitute.For<IOutboxMessagePublisher>();
+
+        ProcessOutboxShell shell = new(repository, publisher);
 
         // Act
-        var processed = await shell.ProcessNextAsync();
+        bool processed = await shell.ProcessNextAsync();
 
         // Assert
         processed.Should().BeFalse();
-        await publisher.DidNotReceive().PublishAsync(Arg.Any<OutboxMessageToPublish>(), Arg.Any<CancellationToken>());
+
+        await publisher.DidNotReceive().PublishAsync(
+            Arg.Any<OutboxMessageToPublish>(),
+            Arg.Any<CancellationToken>());
+
         await repository.DidNotReceive().MarkPublishedAsync(
             Arg.Any<Guid>(),
             Arg.Any<Guid>(),
@@ -33,29 +33,107 @@ public sealed class ProcessOutboxShellTests
             Arg.Any<CancellationToken>());
     }
 
-    [Fact]
-    public async Task ProcessNextAsync_WhenPublicationIsConfirmed_MarksTheMessagePublished()
+    [Theory]
+    [InlineData("notification.requested.v1")]
+    [InlineData("ticket.ai-analysis.requested.v1")]
+    public async Task ProcessNextAsync_WhenPublicationSucceeds_MarksUsingClaimToken(
+        string eventType)
     {
         // Arrange
-        var repository = Substitute.For<IOutboxRepository>();
-        var publisher = Substitute.For<INotificationRequestedPublisher>();
-        var message = CreateMessage();
+        IOutboxRepository repository = Substitute.For<IOutboxRepository>();
+        IOutboxMessagePublisher publisher =
+            Substitute.For<IOutboxMessagePublisher>();
+
+        OutboxMessageToPublish message = new(Guid.NewGuid(), eventType, "{}");
+        Guid actualClaimToken = Guid.Empty;
+
         repository.TryClaimNextAsync(
                 Arg.Any<Guid>(),
                 Arg.Any<DateTimeOffset>(),
                 Arg.Any<DateTimeOffset>(),
                 Arg.Any<CancellationToken>())
-            .Returns(message);
-        repository.MarkPublishedAsync(message.Id, Arg.Any<Guid>(), Arg.Any<DateTimeOffset>(), Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                actualClaimToken = call.ArgAt<Guid>(0);
+                return Task.FromResult<OutboxMessageToPublish?>(message);
+            });
+
+        repository.MarkPublishedAsync(
+                message.Id,
+                Arg.Any<Guid>(),
+                Arg.Any<DateTimeOffset>(),
+                Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(true));
-        var shell = new ProcessOutboxShell(repository, publisher);
+
+        ProcessOutboxShell shell = new(repository, publisher);
 
         // Act
-        var processed = await shell.ProcessNextAsync();
+        bool processed = await shell.ProcessNextAsync();
 
         // Assert
         processed.Should().BeTrue();
-        await publisher.Received(1).PublishAsync(message, Arg.Any<CancellationToken>());
+        actualClaimToken.Should().NotBeEmpty();
+
+        await publisher.Received(1).PublishAsync(
+            message,
+            Arg.Any<CancellationToken>());
+
+        await repository.Received(1).MarkPublishedAsync(
+            message.Id,
+            actualClaimToken,
+            Arg.Any<DateTimeOffset>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task ProcessNextAsync_WhilePublicationIsIncomplete_DoesNotMark()
+    {
+        // Arrange
+        IOutboxRepository repository = Substitute.For<IOutboxRepository>();
+        IOutboxMessagePublisher publisher =
+            Substitute.For<IOutboxMessagePublisher>();
+
+        OutboxMessageToPublish message = new(
+            Guid.NewGuid(),
+            "ticket.ai-analysis.requested.v1",
+            "{}");
+
+        TaskCompletionSource<bool> completion = new(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+
+        repository.TryClaimNextAsync(
+                Arg.Any<Guid>(),
+                Arg.Any<DateTimeOffset>(),
+                Arg.Any<DateTimeOffset>(),
+                Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<OutboxMessageToPublish?>(message));
+
+        publisher.PublishAsync(message, Arg.Any<CancellationToken>())
+            .Returns(completion.Task);
+
+        repository.MarkPublishedAsync(
+                message.Id,
+                Arg.Any<Guid>(),
+                Arg.Any<DateTimeOffset>(),
+                Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(true));
+
+        ProcessOutboxShell shell = new(repository, publisher);
+
+        // Act
+        Task<bool> processing = shell.ProcessNextAsync();
+
+        bool markedBeforeCompletion = repository.ReceivedCalls()
+            .Any(call => call.GetMethodInfo().Name
+                == nameof(IOutboxRepository.MarkPublishedAsync));
+
+        completion.SetResult(true);
+        bool processed = await processing;
+
+        // Assert
+        markedBeforeCompletion.Should().BeFalse();
+        processed.Should().BeTrue();
+
         await repository.Received(1).MarkPublishedAsync(
             message.Id,
             Arg.Any<Guid>(),
@@ -63,28 +141,45 @@ public sealed class ProcessOutboxShellTests
             Arg.Any<CancellationToken>());
     }
 
-    [Fact]
-    public async Task ProcessNextAsync_WhenPublicationFails_DoesNotMarkTheMessagePublished()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ProcessNextAsync_WhenPublicationFails_DoesNotMark(
+        bool unsupported)
     {
         // Arrange
-        var repository = Substitute.For<IOutboxRepository>();
-        var publisher = Substitute.For<INotificationRequestedPublisher>();
-        var message = CreateMessage();
+        IOutboxRepository repository = Substitute.For<IOutboxRepository>();
+        IOutboxMessagePublisher publisher =
+            Substitute.For<IOutboxMessagePublisher>();
+
+        OutboxMessageToPublish message = new(
+            Guid.NewGuid(),
+            "ticket.ai-analysis.requested.v1",
+            "{}");
+
+        Exception expectedException = unsupported
+            ? new NotSupportedException("Unsupported event.")
+            : new IOException("Broker failure or routing return.");
+
         repository.TryClaimNextAsync(
                 Arg.Any<Guid>(),
                 Arg.Any<DateTimeOffset>(),
                 Arg.Any<DateTimeOffset>(),
                 Arg.Any<CancellationToken>())
-            .Returns(message);
+            .Returns(Task.FromResult<OutboxMessageToPublish?>(message));
+
         publisher.PublishAsync(message, Arg.Any<CancellationToken>())
-            .Returns(Task.FromException(new InvalidOperationException("Broker unavailable.")));
-        var shell = new ProcessOutboxShell(repository, publisher);
+            .Returns(Task.FromException(expectedException));
+
+        ProcessOutboxShell shell = new(repository, publisher);
+        Func<Task> operation = () => shell.ProcessNextAsync();
 
         // Act
-        Func<Task> act = () => shell.ProcessNextAsync();
+        Exception? exception = await Record.ExceptionAsync(operation);
 
         // Assert
-        await act.Should().ThrowAsync<InvalidOperationException>();
+        exception.Should().BeSameAs(expectedException);
+
         await repository.DidNotReceive().MarkPublishedAsync(
             Arg.Any<Guid>(),
             Arg.Any<Guid>(),
@@ -93,38 +188,44 @@ public sealed class ProcessOutboxShellTests
     }
 
     [Fact]
-    public async Task ProcessNextAsync_WhenPublicationIsCancelled_DoesNotMarkTheMessagePublished()
+    public async Task ProcessNextAsync_WhenPublicationIsCanceled_DoesNotMark()
     {
         // Arrange
-        var repository = Substitute.For<IOutboxRepository>();
-        var publisher = Substitute.For<INotificationRequestedPublisher>();
-        var message = CreateMessage();
+        IOutboxRepository repository = Substitute.For<IOutboxRepository>();
+        IOutboxMessagePublisher publisher =
+            Substitute.For<IOutboxMessagePublisher>();
+
+        OutboxMessageToPublish message = new(
+            Guid.NewGuid(),
+            "ticket.ai-analysis.requested.v1",
+            "{}");
+
+        using CancellationTokenSource source = new();
+        source.Cancel();
+
         repository.TryClaimNextAsync(
                 Arg.Any<Guid>(),
                 Arg.Any<DateTimeOffset>(),
                 Arg.Any<DateTimeOffset>(),
-                Arg.Any<CancellationToken>())
-            .Returns(message);
-        using var cancellationSource = new CancellationTokenSource();
-        cancellationSource.Cancel();
-        publisher.PublishAsync(message, cancellationSource.Token)
-            .Returns(Task.FromCanceled(cancellationSource.Token));
-        var shell = new ProcessOutboxShell(repository, publisher);
+                source.Token)
+            .Returns(Task.FromResult<OutboxMessageToPublish?>(message));
+
+        publisher.PublishAsync(message, source.Token)
+            .Returns(Task.FromCanceled(source.Token));
+
+        ProcessOutboxShell shell = new(repository, publisher);
+        Func<Task> operation = () => shell.ProcessNextAsync(source.Token);
 
         // Act
-        Func<Task> act = () => shell.ProcessNextAsync(cancellationSource.Token);
+        Exception? exception = await Record.ExceptionAsync(operation);
 
         // Assert
-        await act.Should().ThrowAsync<OperationCanceledException>();
+        exception.Should().BeAssignableTo<OperationCanceledException>();
+
         await repository.DidNotReceive().MarkPublishedAsync(
             Arg.Any<Guid>(),
             Arg.Any<Guid>(),
             Arg.Any<DateTimeOffset>(),
             Arg.Any<CancellationToken>());
     }
-
-    private static OutboxMessageToPublish CreateMessage() => new(
-        Guid.Parse("71bbd91d-0a36-4ef9-9947-21ca9d6bc80b"),
-        "notification.requested.v1",
-        "{\"eventId\":\"71bbd91d-0a36-4ef9-9947-21ca9d6bc80b\"}");
 }
