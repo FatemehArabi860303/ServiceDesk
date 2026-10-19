@@ -6,7 +6,7 @@
   </PropertyGroup>
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
-    <ProjectReference Include="..\..\ServiceDesk.AI\ServiceDesk.AI.csproj" />
+    <ProjectReference Include="..\ServiceDesk.AI\ServiceDesk.AI.csproj" />
     <ProjectReference Include="..\ServiceDesk.Messaging\ServiceDesk.Messaging.csproj" />
     <ProjectReference Include="..\ServiceDesk.Repository\ServiceDesk.Repository.csproj" />
   </ItemGroup>

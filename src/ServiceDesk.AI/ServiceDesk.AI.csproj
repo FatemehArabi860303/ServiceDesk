@@ -12,8 +12,8 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <ProjectReference Include="..\src\ServiceDesk.Core\ServiceDesk.Core.csproj" />
-	  <ProjectReference Include="..\src\ServiceDesk.Shell\ServiceDesk.Shell.csproj" />
+	  <ProjectReference Include="..\ServiceDesk.Core\ServiceDesk.Core.csproj" />
+	  <ProjectReference Include="..\ServiceDesk.Shell\ServiceDesk.Shell.csproj" />
 	</ItemGroup>
 
 </Project>

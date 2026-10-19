@@ -15,12 +15,12 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <ProjectReference Include="..\ServiceDesk.AI\ServiceDesk.AI.csproj" />
+	  <ProjectReference Include="..\..\src\ServiceDesk.AI\ServiceDesk.AI.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>
 		<Using Include="Xunit" />
-		<None Include="..\src\ServiceDesk.AiWorker\appsettings.json" Link="Fixtures\AiWorker.appsettings.json" CopyToOutputDirectory="PreserveNewest" />
+		<None Include="..\..\src\ServiceDesk.AiWorker\appsettings.json" Link="Fixtures\AiWorker.appsettings.json" CopyToOutputDirectory="PreserveNewest" />
 	</ItemGroup>
 
 </Project>
