@@ -18,6 +18,8 @@
     <Project Path="src/ServiceDesk.WebApi/ServiceDesk.WebApi.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/LiveIntegration.Tests/ServiceDesk.LiveIntegration.Tests.csproj" />
+    <Project Path="tests/LiveIntegration/ServiceDesk.LiveIntegration.csproj" />
     <Project Path="tests/RabbitMq.Publishers.Tests/RabbitMq.Publishers.Tests.csproj" />
     <Project Path="tests/RabbitMq.Consumers.Tests/RabbitMq.Consumers.Tests.csproj" />
     <Project Path="ServiceDesk.AI.Tests/ServiceDesk.AI.Tests.csproj" Id="a8f1a7ea-a865-4c40-99a9-f86a02a3d0b4" />

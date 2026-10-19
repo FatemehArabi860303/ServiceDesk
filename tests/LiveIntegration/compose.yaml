@@ -1,0 +1,22 @@
+services:
+  sql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: ${SDV_SQL_PASSWORD:?required}
+    ports:
+      - "127.0.0.1:${SDV_SQL_PORT:?required}:1433"
+  rabbitmq:
+    image: rabbitmq:4-management
+    environment:
+      RABBITMQ_DEFAULT_USER: verification
+      RABBITMQ_DEFAULT_PASS: ${SDV_BROKER_PASSWORD:?required}
+      RABBITMQ_DEFAULT_VHOST: ${SDV_RUN_ID:?required}
+    ports:
+      - "127.0.0.1:${SDV_AMQP_PORT:?required}:5672"
+      - "127.0.0.1:${SDV_MANAGEMENT_PORT:?required}:15672"
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "127.0.0.1:${SDV_SMTP_PORT:?required}:1025"
+      - "127.0.0.1:${SDV_MAILPIT_PORT:?required}:8025"

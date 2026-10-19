@@ -20,6 +20,7 @@
 
 	<ItemGroup>
 		<Using Include="Xunit" />
+		<None Include="..\src\ServiceDesk.AiWorker\appsettings.json" Link="Fixtures\AiWorker.appsettings.json" CopyToOutputDirectory="PreserveNewest" />
 	</ItemGroup>
 
 </Project>

@@ -30,6 +30,31 @@ public sealed class OpenAiTicketAnalyzerTests
         """;
 
     [Fact]
+    public async Task AnalyzeAsync_WithWorkerConfiguration_UsesSingleVersionSegmentInRequestUri()
+    {
+        // Arrange
+        using JsonDocument configuration = JsonDocument.Parse(File.ReadAllText(
+            Path.Combine(AppContext.BaseDirectory, "Fixtures", "AiWorker.appsettings.json")));
+        string configuredBaseUrl = configuration.RootElement.GetProperty("OpenAI").GetProperty("BaseUrl").GetString()!;
+        Uri? actualUri = null;
+        using HttpClient client = createHttpClient((request, cancellationToken) =>
+        {
+            actualUri = request.RequestUri;
+            return Task.FromResult(jsonResponse(completedResponse(ValidAnalysisJson)));
+        });
+        client.BaseAddress = new Uri(configuredBaseUrl, UriKind.Absolute);
+        OpenAiOptions options = new() { ApiKey = "test-key", Model = "test-model", BaseUrl = configuredBaseUrl };
+        OpenAiTicketAnalyzer analyzer = new(client, Options.Create(options));
+
+        // Act
+        await analyzer.AnalyzeAsync(createInput(), CancellationToken.None);
+
+        // Assert
+        actualUri.Should().Be(new Uri("https://api.openai.com/v1/responses"));
+        actualUri!.AbsolutePath.Should().Be("/v1/responses");
+    }
+
+    [Fact]
     public async Task AnalyzeAsync_WithValidResponse_SendsStructuredRequestAndReturnsResult()
     {
         // Arrange
