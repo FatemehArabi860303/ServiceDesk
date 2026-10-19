@@ -1,26 +1,13 @@
 using Microsoft.Extensions.Hosting;
 using NotificationService.Messaging;
+using RabbitMq.Consumers;
 
 namespace NotificationService.Worker;
 
-public sealed class NotificationConsumerWorker(RabbitMqNotificationConsumer consumer) : BackgroundService
+public sealed class NotificationConsumerWorker(RabbitMqConsumer<NotificationMessageHandler> consumer) : BackgroundService
 {
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-    {
-        consumer.Start(stoppingToken);
+    protected override Task ExecuteAsync(CancellationToken stoppingToken) => consumer.RunAsync(stoppingToken);
 
-        try
-        {
-            await Task.Delay(Timeout.InfiniteTimeSpan, stoppingToken);
-        }
-        catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
-        {
-        }
-    }
-
-    public override Task StopAsync(CancellationToken cancellationToken)
-    {
-        consumer.Dispose();
-        return base.StopAsync(cancellationToken);
-    }
+    // Scoped dependencies must outlive handler cleanup, even after the host deadline expires.
+    public override Task StopAsync(CancellationToken cancellationToken) => base.StopAsync(CancellationToken.None);
 }

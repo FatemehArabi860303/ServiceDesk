@@ -4,6 +4,7 @@ using NotificationService.Messaging;
 using NotificationService.Shell;
 using NotificationService.Worker;
 using RabbitMQ.Client;
+using RabbitMq.Consumers;
 
 var builder = Host.CreateApplicationBuilder(args);
 
@@ -28,11 +29,14 @@ builder.Services.AddSingleton<IConnectionFactory>(_ => new ConnectionFactory
     VirtualHost = rabbitMqOptions.VirtualHost,
     UserName = rabbitMqOptions.UserName,
     Password = rabbitMqOptions.Password,
-    DispatchConsumersAsync = true
+    DispatchConsumersAsync = true,
+    AutomaticRecoveryEnabled = false
 });
 builder.Services.AddSingleton<IEmailSender, SmtpEmailSender>();
-builder.Services.AddSingleton<ProcessNotificationShell>();
-builder.Services.AddSingleton<RabbitMqNotificationConsumer>();
+builder.Services.AddScoped<ProcessNotificationShell>();
+builder.Services.AddScoped<NotificationMessageHandler>();
+builder.Services.AddSingleton(NotificationMessageHandler.ConsumerOptions);
+builder.Services.AddSingleton<RabbitMqConsumer<NotificationMessageHandler>>();
 builder.Services.AddHostedService<NotificationConsumerWorker>();
 
 await builder.Build().RunAsync();

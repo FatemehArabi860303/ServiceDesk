@@ -8,6 +8,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="..\TestSupport\ConsumerSession.cs" Link="ConsumerSession.cs" />
+    <ProjectReference Include="..\..\src\ServiceDesk.AiWorker\ServiceDesk.AiWorker.csproj" />
     <PackageReference Include="FluentAssertions" Version="8.11.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageReference Include="NSubstitute" Version="6.2.0" />

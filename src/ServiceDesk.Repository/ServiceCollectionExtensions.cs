@@ -9,6 +9,8 @@ using ServiceDesk.Shell.Tickets;
 using ServiceDesk.Shell.Users;
 using ServiceDesk.Shell.Authentication;
 using ServiceDesk.Shell.Notifications;
+using ServiceDesk.Repository.AiAnalysis;
+using ServiceDesk.Shell.AiAnalysis;
 
 namespace ServiceDesk.Repository;
 
@@ -34,6 +36,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IUserAccessProvisionRepository, UserAccessProvisionRepository>();
         services.AddScoped<ITicketRepository, TicketRepository>();
         services.AddScoped<IOutboxRepository, OutboxRepository>();
+        services.AddScoped<ITicketAiAnalysisRepository, TicketAiAnalysisRepository>();
 
         return services;
     }
