@@ -23,6 +23,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\ServiceDesk.Messaging\ServiceDesk.Messaging.csproj" />
+    <ProjectReference Include="..\..\src\NotificationService.Messaging\NotificationService.Messaging.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,4 +1,5 @@
 using RabbitMQ.Client;
+using RabbitMq.Publishers;
 using ServiceDesk.Messaging;
 using ServiceDesk.NotificationWorker;
 using ServiceDesk.Repository;
@@ -24,7 +25,8 @@ builder.Services.AddSingleton<IConnectionFactory>(_ => new ConnectionFactory
     VirtualHost = rabbitMqOptions.VirtualHost,
     UserName = rabbitMqOptions.UserName,
     Password = rabbitMqOptions.Password,
-    DispatchConsumersAsync = true
+    DispatchConsumersAsync = true,
+    AutomaticRecoveryEnabled = false
 });
 
 builder.Services.AddSingleton(new RabbitMqOutboxRouting(
@@ -32,6 +34,9 @@ builder.Services.AddSingleton(new RabbitMqOutboxRouting(
     RabbitMqOutboxRoute.Notification,
     RabbitMqOutboxRoute.AiAnalysis
 ]));
+
+builder.Services.AddSingleton(new RabbitMqPublisherOptions());
+builder.Services.AddSingleton<IRabbitMqPublisher, RabbitMqPublisher>();
 
 builder.Services.AddSingleton<
     IOutboxMessagePublisher,

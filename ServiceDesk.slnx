@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/RabbitMq.Publishers/RabbitMq.Publishers.csproj" />
     <Project Path="src/RabbitMq.Consumers/RabbitMq.Consumers.csproj" />
     <Project Path="src/ServiceDesk.AiWorker/ServiceDesk.AiWorker.csproj" />
     <Project Path="ServiceDesk.AI/ServiceDesk.AI.csproj" Id="2ee23a17-cd4a-42c5-a2a7-32c41f9977c8" />
@@ -17,6 +18,7 @@
     <Project Path="src/ServiceDesk.WebApi/ServiceDesk.WebApi.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/RabbitMq.Publishers.Tests/RabbitMq.Publishers.Tests.csproj" />
     <Project Path="tests/RabbitMq.Consumers.Tests/RabbitMq.Consumers.Tests.csproj" />
     <Project Path="ServiceDesk.AI.Tests/ServiceDesk.AI.Tests.csproj" Id="a8f1a7ea-a865-4c40-99a9-f86a02a3d0b4" />
     <Project Path="tests/NotificationService.Messaging.Tests/NotificationService.Messaging.Tests.csproj" />
