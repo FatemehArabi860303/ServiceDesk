@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using ServiceDesk.Core.Tickets;
 using ServiceDesk.Core.Users;
+using ServiceDesk.Repository.AiAnalysis;
 using ServiceDesk.Shell.Authentication;
 using ServiceDesk.Repository.Notifications;
 
@@ -19,6 +20,7 @@ public sealed class ServiceDeskDbContext(DbContextOptions<ServiceDeskDbContext> 
     public DbSet<UserAccessProvision> UserAccessProvisions => Set<UserAccessProvision>();
 
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
+    public DbSet<TicketAiAnalysis> TicketAiAnalyses => Set<TicketAiAnalysis>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -2,6 +2,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using ServiceDesk.AI.Configuration;
+using ServiceDesk.Repository.AiAnalysis;
 using ServiceDesk.Shell.AiAnalysis;
 
 namespace ServiceDesk.AI.AiAnalysis;
@@ -18,6 +19,10 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<
             IValidateOptions<OpenAiOptions>,
             OpenAiOptionsValidator>();
+
+        services.AddScoped<
+            ITicketAiAnalysisRepository,
+            TicketAiAnalysisRepository>();
 
         services.AddOptions<OpenAiOptions>()
             .Bind(configuration.GetSection(OpenAiOptions.SectionName))

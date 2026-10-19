@@ -17,7 +17,7 @@ namespace ServiceDesk.Repository.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.0")
+                .HasAnnotation("ProductVersion", "10.0.13")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -145,6 +145,28 @@ namespace ServiceDesk.Repository.Migrations
                     b.ToTable("Users", (string)null);
                 });
 
+            modelBuilder.Entity("ServiceDesk.Repository.AiAnalysis.TicketAiAnalysis", b =>
+                {
+                    b.Property<Guid>("EventId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("CompletedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("ResultJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("TicketId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("EventId");
+
+                    b.HasIndex("TicketId");
+
+                    b.ToTable("TicketAiAnalyses", (string)null);
+                });
+
             modelBuilder.Entity("ServiceDesk.Repository.Notifications.OutboxMessage", b =>
                 {
                     b.Property<Guid>("Id")
@@ -247,6 +269,15 @@ namespace ServiceDesk.Repository.Migrations
                         .WithMany("History")
                         .HasForeignKey("TicketId")
                         .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("ServiceDesk.Repository.AiAnalysis.TicketAiAnalysis", b =>
+                {
+                    b.HasOne("ServiceDesk.Core.Tickets.Ticket", null)
+                        .WithMany()
+                        .HasForeignKey("TicketId")
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });
 

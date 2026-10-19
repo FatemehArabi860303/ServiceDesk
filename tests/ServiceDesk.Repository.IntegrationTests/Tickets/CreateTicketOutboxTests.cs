@@ -39,8 +39,8 @@ public sealed class CreateTicketOutboxTests : IAsyncLifetime
     public async Task ExecuteAsync_WithValidCustomer_CommitsTicketHistoryAndAnalysisRequest()
     {
         // Arrange
-        User customer = await seedCustomerAsync();
-        CreateTicketCommand command = createCommand();
+        User customer = await SeedCustomerAsync();
+        CreateTicketCommand command = CreateCommand();
 
         await using ServiceDeskDbContext context = new(options);
         UserRepository userRepository = new(context);
@@ -48,9 +48,12 @@ public sealed class CreateTicketOutboxTests : IAsyncLifetime
         CreateTicketShell shell = new(userRepository, ticketRepository);
 
         // Act
-        Ticket returnedTicket = await shell.ExecuteAsync(command, customer.Id);
+        Ticket returnedTicket = await shell.ExecuteAsync(
+            command,
+            customer.Id);
 
         await using ServiceDeskDbContext verification = new(options);
+
         Ticket storedTicket = await verification.Tickets
             .Include(ticket => ticket.History)
             .SingleAsync();
@@ -71,6 +74,7 @@ public sealed class CreateTicketOutboxTests : IAsyncLifetime
 
         // Assert
         returnedTicket.Id.Should().NotBeEmpty();
+
         storedTicket.Id.Should().Be(returnedTicket.Id);
         storedTicket.CustomerUserId.Should().Be(customer.Id);
         storedTicket.Title.Should().Be(command.Title);
@@ -81,6 +85,8 @@ public sealed class CreateTicketOutboxTests : IAsyncLifetime
         storedTicket.History.Should().ContainSingle();
         storedHistory.Action.Should().Be(TicketHistoryAction.Created);
         storedHistory.TicketId.Should().Be(returnedTicket.Id);
+        storedHistory.ActorUserId.Should().Be(customer.Id);
+        storedHistory.OccurredAt.Should().Be(returnedTicket.CreatedAt);
 
         storedMessage.Id.Should().NotBeEmpty();
         storedMessage.Type.Should().Be(TicketAiAnalysisRequestedV1.Type);
@@ -88,6 +94,7 @@ public sealed class CreateTicketOutboxTests : IAsyncLifetime
         storedMessage.PublishedAt.Should().BeNull();
         storedMessage.ClaimToken.Should().BeNull();
         storedMessage.ClaimExpiresAt.Should().BeNull();
+
         analysisRequested.Should().Be(expectedEvent);
     }
 
@@ -99,8 +106,8 @@ public sealed class CreateTicketOutboxTests : IAsyncLifetime
         string rejectedTable)
     {
         // Arrange
-        User customer = await seedCustomerAsync();
-        CreateTicketCommand command = createCommand();
+        User customer = await SeedCustomerAsync();
+        CreateTicketCommand command = CreateCommand();
 
         await using ServiceDeskDbContext context = new(options);
 
@@ -126,6 +133,7 @@ public sealed class CreateTicketOutboxTests : IAsyncLifetime
         Exception? exception = await Record.ExceptionAsync(operation);
 
         await using ServiceDeskDbContext verification = new(options);
+
         int ticketCount = await verification.Tickets.CountAsync();
         int historyCount = await verification.TicketHistories.CountAsync();
         int outboxCount = await verification.OutboxMessages.CountAsync();
@@ -143,7 +151,7 @@ public sealed class CreateTicketOutboxTests : IAsyncLifetime
     public async Task ExecuteAsync_WithInvalidTicket_DoesNotPersistTicketOrAnalysisRequest()
     {
         // Arrange
-        User customer = await seedCustomerAsync();
+        User customer = await SeedCustomerAsync();
 
         CreateTicketCommand command = new(
             " ",
@@ -162,13 +170,16 @@ public sealed class CreateTicketOutboxTests : IAsyncLifetime
         Exception? exception = await Record.ExceptionAsync(operation);
 
         await using ServiceDeskDbContext verification = new(options);
+
         int ticketCount = await verification.Tickets.CountAsync();
         int historyCount = await verification.TicketHistories.CountAsync();
         int outboxCount = await verification.OutboxMessages.CountAsync();
 
         // Assert
-        exception.Should().BeOfType<CreateTicketException>()
-            .Which.Failure.Should().Be(CreateTicketFailureKind.InvalidTitle);
+        exception.Should()
+            .BeOfType<CreateTicketException>()
+            .Which.Failure.Should()
+            .Be(CreateTicketFailureKind.InvalidTitle);
 
         ticketCount.Should().Be(0);
         historyCount.Should().Be(0);
@@ -179,8 +190,8 @@ public sealed class CreateTicketOutboxTests : IAsyncLifetime
     public async Task TryClaimNextAsync_WithOnlyAnalysisRequest_ClaimsItForPublication()
     {
         // Arrange
-        User customer = await seedCustomerAsync();
-        CreateTicketCommand command = createCommand();
+        User customer = await SeedCustomerAsync();
+        CreateTicketCommand command = CreateCommand();
 
         await using (ServiceDeskDbContext submissionContext = new(options))
         {
@@ -197,19 +208,23 @@ public sealed class CreateTicketOutboxTests : IAsyncLifetime
         DateTimeOffset now = DateTimeOffset.UtcNow;
 
         // Act
-        OutboxMessageToPublish? claimed = await repository.TryClaimNextAsync(
-            claimToken,
-            now,
-            now.AddMinutes(5));
+        OutboxMessageToPublish? claimed =
+            await repository.TryClaimNextAsync(
+                claimToken,
+                now,
+                now.AddMinutes(5));
 
         await using ServiceDeskDbContext verification = new(options);
-        OutboxMessage stored = await verification.OutboxMessages.SingleAsync();
+
+        OutboxMessage stored = await verification.OutboxMessages
+            .SingleAsync();
 
         // Assert
         claimed.Should().NotBeNull();
         claimed!.Id.Should().Be(stored.Id);
         claimed.Type.Should().Be(TicketAiAnalysisRequestedV1.Type);
         claimed.Payload.Should().Be(stored.Payload);
+
         stored.PublishedAt.Should().BeNull();
         stored.ClaimToken.Should().Be(claimToken);
         stored.ClaimExpiresAt.Should().NotBeNull();
@@ -219,8 +234,8 @@ public sealed class CreateTicketOutboxTests : IAsyncLifetime
     public async Task TryClaimNextAsync_WithMixedEvents_ClaimsBothWithoutPublishingEither()
     {
         // Arrange
-        User customer = await seedCustomerAsync();
-        CreateTicketCommand command = createCommand();
+        User customer = await SeedCustomerAsync();
+        CreateTicketCommand command = CreateCommand();
         DateTimeOffset now = DateTimeOffset.UtcNow;
         Guid notificationId = Guid.NewGuid();
 
@@ -252,30 +267,35 @@ public sealed class CreateTicketOutboxTests : IAsyncLifetime
 
         await using ServiceDeskDbContext context = new(options);
         OutboxRepository repository = new(context);
+
         Guid firstToken = Guid.NewGuid();
         Guid secondToken = Guid.NewGuid();
 
         string[] expectedTypes =
         [
             NotificationRequestedV1.Type,
-        TicketAiAnalysisRequestedV1.Type
+            TicketAiAnalysisRequestedV1.Type
         ];
 
         // Act
-        OutboxMessageToPublish? first = await repository.TryClaimNextAsync(
-            firstToken,
-            now,
-            now.AddMinutes(5));
+        OutboxMessageToPublish? first =
+            await repository.TryClaimNextAsync(
+                firstToken,
+                now,
+                now.AddMinutes(5));
 
-        OutboxMessageToPublish? second = await repository.TryClaimNextAsync(
-            secondToken,
-            now,
-            now.AddMinutes(5));
+        OutboxMessageToPublish? second =
+            await repository.TryClaimNextAsync(
+                secondToken,
+                now,
+                now.AddMinutes(5));
 
         string?[] actualTypes = [first?.Type, second?.Type];
 
         await using ServiceDeskDbContext verification = new(options);
+
         int outboxCount = await verification.OutboxMessages.CountAsync();
+
         int publishedCount = await verification.OutboxMessages
             .CountAsync(message => message.PublishedAt != null);
 
@@ -283,12 +303,13 @@ public sealed class CreateTicketOutboxTests : IAsyncLifetime
         first.Should().NotBeNull();
         second.Should().NotBeNull();
         first!.Id.Should().NotBe(second!.Id);
+
         actualTypes.Should().BeEquivalentTo(expectedTypes);
         outboxCount.Should().Be(2);
         publishedCount.Should().Be(0);
     }
 
-    private async Task<User> seedCustomerAsync()
+    private async Task<User> SeedCustomerAsync()
     {
         DateTimeOffset now = DateTimeOffset.UtcNow;
 
@@ -309,7 +330,7 @@ public sealed class CreateTicketOutboxTests : IAsyncLifetime
         return customer;
     }
 
-    private static CreateTicketCommand createCommand() => new(
+    private static CreateTicketCommand CreateCommand() => new(
         "Cannot access VPN",
         "The VPN rejects my credentials.",
         TicketPriority.High);
