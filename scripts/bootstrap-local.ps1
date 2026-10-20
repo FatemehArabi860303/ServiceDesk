@@ -54,12 +54,12 @@ try {
 
     Push-Location $repositoryRoot
     try {
-        & dotnet ef database update --project ".\src\ServiceDesk.Repository" --startup-project ".\src\ServiceDesk.Repository" --connection $connectionString
+        & dotnet ef database update --project ".\src\ServiceDesk\ServiceDesk.Repository" --startup-project ".\src\ServiceDesk\ServiceDesk.Repository" --connection $connectionString
         if ($LASTEXITCODE -ne 0) {
             throw "Applying EF Core migrations to ServiceDeskLocal failed."
         }
 
-        & dotnet run --project ".\src\ServiceDesk.WebApi" -- --bootstrap-administrator
+        & dotnet run --project ".\src\ServiceDesk\ServiceDesk.WebApi" -- --bootstrap-administrator
         if ($LASTEXITCODE -ne 0) {
             throw "First Administrator bootstrap failed. Check that ServiceDeskLocal is empty and that the entered data meets the application rules."
         }

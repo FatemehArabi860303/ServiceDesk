@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <AssemblyName>ServiceDesk.NotificationWorker</AssemblyName>
+    <RootNamespace>ServiceDesk.NotificationWorker</RootNamespace>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ServiceDesk.OutboxMessaging\ServiceDesk.OutboxMessaging.csproj" />
+    <ProjectReference Include="..\ServiceDesk.Repository\ServiceDesk.Repository.csproj" />
+    <ProjectReference Include="..\ServiceDesk.Shell\ServiceDesk.Shell.csproj" />
+  </ItemGroup>
+
+</Project>

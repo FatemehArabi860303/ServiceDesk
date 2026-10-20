@@ -1,6 +1,6 @@
 # ServiceDesk live integration verification
 
-## Current validation status
+## Prior baseline (before solution relocation)
 
 The Docker-backed deterministic run `sdverifye887a4dc7da84d23997115731faf445e`
 passed all 13 required verification scenarios and cleanup on 2026-10-20. The optional real
@@ -15,6 +15,17 @@ briefly holds the destination. Focused regression tests cover these behaviors an
 OpenAI request URL. Docker stop/start was found to reassign automatically published host ports;
 the runner now explicitly binds distinct ports selected for each run, and verifies that broker
 ports remain unchanged after restart.
+
+## Solution relocation verification
+
+The runner project now lives in `ServiceDesk.LiveIntegration/` and its safety tests in
+`ServiceDesk.LiveIntegration.Tests/`. The script and Compose paths below remain unchanged.
+Resumed verification on 2026-10-20 passed restore, build and all 469 solution tests.
+Docker-backed run `sdverify637e02cc880049f0b6418bb99227960d` passed all 13 required
+scenarios and cleanup (exit 0). No owned containers, volumes or networks remain;
+pre-existing containers were preserved. Real OpenAI was **NOT RUN** in this structural
+verification. The previous environment-blocked attempt is superseded by this result.
+Existing NuGet cryptography package vulnerability warnings and verifier EF1002 remain.
 
 ## Prerequisites and commands
 
@@ -31,7 +42,7 @@ From the repository root:
 .\tests\LiveIntegration\Invoke-ServiceDeskVerification.ps1 -CheckOnly
 ```
 
-The runner has a 20-minute deadline, adjustable with `-TimeoutSeconds` (600–3600).
+The runner has a 20-minute deadline, adjustable with `-TimeoutSeconds` (600â€“3600).
 SDK/build commands and Docker startup/cleanup have separate bounded setup deadlines.
 The broker-outage scenario intentionally honors the production **five-minute Outbox claim
 lease**, so a successful run takes several minutes. Readiness and completion use bounded

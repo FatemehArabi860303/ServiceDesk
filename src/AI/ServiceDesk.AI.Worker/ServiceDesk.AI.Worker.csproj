@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <AssemblyName>ServiceDesk.AiWorker</AssemblyName>
+    <RootNamespace>ServiceDesk.AiWorker</RootNamespace>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <ProjectReference Include="..\ServiceDesk.AI.OpenAI\ServiceDesk.AI.OpenAI.csproj" />
+    <ProjectReference Include="..\..\ServiceDesk\ServiceDesk.OutboxMessaging\ServiceDesk.OutboxMessaging.csproj" />
+    <ProjectReference Include="..\..\ServiceDesk\ServiceDesk.Repository\ServiceDesk.Repository.csproj" />
+  </ItemGroup>
+</Project>

@@ -101,7 +101,7 @@ try {
         Set-RunEnvironment 'SDV_REPORT_PATH' $reportPath
         Set-RunEnvironment 'SDV_REAL_OPENAI' ([string][bool]$UseRealOpenAI)
         Set-RunEnvironment 'SDV_TIMEOUT_SECONDS' ([string]$TimeoutSeconds)
-        $build = Invoke-Tool 'dotnet' @('build', (Join-Path $PSScriptRoot 'ServiceDesk.LiveIntegration.csproj'), '-v', 'quiet', '-clp:ErrorsOnly') 300
+        $build = Invoke-Tool 'dotnet' @('build', (Join-Path $PSScriptRoot 'ServiceDesk.LiveIntegration/ServiceDesk.LiveIntegration.csproj'), '-v', 'quiet', '-clp:ErrorsOnly') 300
         if ($build.ExitCode -ne 0) { throw 'Building the verification runner failed.' }
         # Docker can reassign an automatically published port after stop/start. Select distinct
         # loopback ports up front and explicitly bind them for the lifetime of this project.
@@ -122,7 +122,7 @@ try {
             @('rabbitmq',15672,'SDV_MANAGEMENT_PORT'), @('mailpit',1025,'SDV_SMTP_PORT'), @('mailpit',8025,'SDV_MAILPIT_PORT'))) {
             Set-RunEnvironment $mapping[2] (Get-Port $mapping[0] $mapping[1])
         }
-        $runner = Join-Path $PSScriptRoot 'bin/Debug/net10.0/ServiceDesk.LiveIntegration.dll'
+        $runner = Join-Path $PSScriptRoot 'ServiceDesk.LiveIntegration/bin/Debug/net10.0/ServiceDesk.LiveIntegration.dll'
         Write-Host 'Running isolated verification. Broker outage recovery honors the five-minute Outbox lease.'
         $run = Invoke-Tool 'dotnet' @($runner) ($TimeoutSeconds + 120)
         $exitCode = $run.ExitCode

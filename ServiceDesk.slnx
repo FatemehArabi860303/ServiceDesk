@@ -1,34 +1,48 @@
 <Solution>
-  <Folder Name="/src/">
-    <Project Path="src/RabbitMq.Publishers/RabbitMq.Publishers.csproj" />
-    <Project Path="src/RabbitMq.Consumers/RabbitMq.Consumers.csproj" />
-    <Project Path="src/ServiceDesk.AiWorker/ServiceDesk.AiWorker.csproj" />
-    <Project Path="src/ServiceDesk.AI/ServiceDesk.AI.csproj" Id="2ee23a17-cd4a-42c5-a2a7-32c41f9977c8" />
-    <Project Path="src/ServiceDesk.Contracts/ServiceDesk.Contracts.csproj" Id="f541117f-2ab4-4ff0-bd11-fb7c9c5e0d32" />
-    <Project Path="src/Notification.Contracts/Notification.Contracts.csproj" />
-    <Project Path="src/NotificationService.Email/NotificationService.Email.csproj" />
-    <Project Path="src/NotificationService.Messaging/NotificationService.Messaging.csproj" />
-    <Project Path="src/NotificationService.Shell/NotificationService.Shell.csproj" />
-    <Project Path="src/NotificationService.Worker/NotificationService.Worker.csproj" />
-    <Project Path="src/ServiceDesk.Core/ServiceDesk.Core.csproj" />
-    <Project Path="src/ServiceDesk.Messaging/ServiceDesk.Messaging.csproj" />
-    <Project Path="src/ServiceDesk.NotificationWorker/ServiceDesk.NotificationWorker.csproj" />
-    <Project Path="src/ServiceDesk.Repository/ServiceDesk.Repository.csproj" />
-    <Project Path="src/ServiceDesk.Shell/ServiceDesk.Shell.csproj" />
-    <Project Path="src/ServiceDesk.WebApi/ServiceDesk.WebApi.csproj" />
+  <Folder Name="/src/AI/">
+    <Project Path="src/AI/ServiceDesk.AI.OpenAI/ServiceDesk.AI.OpenAI.csproj" Id="2ee23a17-cd4a-42c5-a2a7-32c41f9977c8" />
+    <Project Path="src/AI/ServiceDesk.AI.Worker/ServiceDesk.AI.Worker.csproj" />
   </Folder>
-  <Folder Name="/tests/">
-    <Project Path="tests/LiveIntegration.Tests/ServiceDesk.LiveIntegration.Tests.csproj" />
-    <Project Path="tests/LiveIntegration/ServiceDesk.LiveIntegration.csproj" />
-    <Project Path="tests/RabbitMq.Publishers.Tests/RabbitMq.Publishers.Tests.csproj" />
-    <Project Path="tests/RabbitMq.Consumers.Tests/RabbitMq.Consumers.Tests.csproj" />
-    <Project Path="tests/ServiceDesk.AI.Tests/ServiceDesk.AI.Tests.csproj" Id="a8f1a7ea-a865-4c40-99a9-f86a02a3d0b4" />
-    <Project Path="tests/NotificationService.Messaging.Tests/NotificationService.Messaging.Tests.csproj" />
-    <Project Path="tests/NotificationService.Shell.Tests/NotificationService.Shell.Tests.csproj" />
-    <Project Path="tests/ServiceDesk.Core.Tests/ServiceDesk.Core.Tests.csproj" />
-    <Project Path="tests/ServiceDesk.Messaging.Tests/ServiceDesk.Messaging.Tests.csproj" />
-    <Project Path="tests/ServiceDesk.Repository.IntegrationTests/ServiceDesk.Repository.IntegrationTests.csproj" />
-    <Project Path="tests/ServiceDesk.Shell.Tests/ServiceDesk.Shell.Tests.csproj" />
-    <Project Path="tests/ServiceDesk.WebApi.IntegrationTests/ServiceDesk.WebApi.IntegrationTests.csproj" />
+  <Folder Name="/src/Messaging/">
+    <Project Path="src/Messaging/RabbitMq.Consumers/RabbitMq.Consumers.csproj" />
+    <Project Path="src/Messaging/RabbitMq.Publishers/RabbitMq.Publishers.csproj" />
+  </Folder>
+  <Folder Name="/src/Notifications/">
+    <Project Path="src/Notifications/Notification.Contracts/Notification.Contracts.csproj" />
+    <Project Path="src/Notifications/NotificationService.Application/NotificationService.Application.csproj" />
+    <Project Path="src/Notifications/NotificationService.Email/NotificationService.Email.csproj" />
+    <Project Path="src/Notifications/NotificationService.Messaging/NotificationService.Messaging.csproj" />
+    <Project Path="src/Notifications/NotificationService.Worker/NotificationService.Worker.csproj" />
+  </Folder>
+  <Folder Name="/src/ServiceDesk/">
+    <Project Path="src/ServiceDesk/ServiceDesk.Contracts/ServiceDesk.Contracts.csproj" Id="f541117f-2ab4-4ff0-bd11-fb7c9c5e0d32" />
+    <Project Path="src/ServiceDesk/ServiceDesk.Core/ServiceDesk.Core.csproj" />
+    <Project Path="src/ServiceDesk/ServiceDesk.Outbox.Worker/ServiceDesk.Outbox.Worker.csproj" />
+    <Project Path="src/ServiceDesk/ServiceDesk.OutboxMessaging/ServiceDesk.OutboxMessaging.csproj" />
+    <Project Path="src/ServiceDesk/ServiceDesk.Repository/ServiceDesk.Repository.csproj" />
+    <Project Path="src/ServiceDesk/ServiceDesk.Shell/ServiceDesk.Shell.csproj" />
+    <Project Path="src/ServiceDesk/ServiceDesk.WebApi/ServiceDesk.WebApi.csproj" />
+  </Folder>
+  <Folder Name="/tests/AI/">
+    <Project Path="tests/AI/ServiceDesk.AI.OpenAI.Tests/ServiceDesk.AI.OpenAI.Tests.csproj" Id="a8f1a7ea-a865-4c40-99a9-f86a02a3d0b4" />
+  </Folder>
+  <Folder Name="/tests/LiveIntegration/">
+    <Project Path="tests/LiveIntegration/ServiceDesk.LiveIntegration.Tests/ServiceDesk.LiveIntegration.Tests.csproj" />
+    <Project Path="tests/LiveIntegration/ServiceDesk.LiveIntegration/ServiceDesk.LiveIntegration.csproj" />
+  </Folder>
+  <Folder Name="/tests/Messaging/">
+    <Project Path="tests/Messaging/RabbitMq.Consumers.Tests/RabbitMq.Consumers.Tests.csproj" />
+    <Project Path="tests/Messaging/RabbitMq.Publishers.Tests/RabbitMq.Publishers.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tests/Notifications/">
+    <Project Path="tests/Notifications/NotificationService.Application.Tests/NotificationService.Application.Tests.csproj" />
+    <Project Path="tests/Notifications/NotificationService.Messaging.Tests/NotificationService.Messaging.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tests/ServiceDesk/">
+    <Project Path="tests/ServiceDesk/ServiceDesk.Core.Tests/ServiceDesk.Core.Tests.csproj" />
+    <Project Path="tests/ServiceDesk/ServiceDesk.OutboxMessaging.Tests/ServiceDesk.OutboxMessaging.Tests.csproj" />
+    <Project Path="tests/ServiceDesk/ServiceDesk.Repository.IntegrationTests/ServiceDesk.Repository.IntegrationTests.csproj" />
+    <Project Path="tests/ServiceDesk/ServiceDesk.Shell.Tests/ServiceDesk.Shell.Tests.csproj" />
+    <Project Path="tests/ServiceDesk/ServiceDesk.WebApi.IntegrationTests/ServiceDesk.WebApi.IntegrationTests.csproj" />
   </Folder>
 </Solution>

@@ -19,7 +19,7 @@ A failed ticket database transaction fails ticket submission.
 
 ## Publication Boundary
 
-ServiceDesk.NotificationWorker hosts the existing Outbox publisher.
+ServiceDesk.Outbox.Worker hosts the existing Outbox publisher.
 
 The publisher delivers committed Outbox events to RabbitMQ asynchronously.
 An event remains available for later delivery when RabbitMQ is unavailable.
@@ -37,7 +37,7 @@ A dedicated AI consumer host receives TicketAiAnalysisRequestedV1.
 1. The consumer invokes AnalyzeRequestShell.
 2. Shell retrieves analysis facts through repository abstractions.
 3. Shell invokes ITicketAiAnalyzer.
-4. OpenAiTicketAnalyzer in ServiceDesk.AI implements that interface.
+4. OpenAiTicketAnalyzer in ServiceDesk.AI.OpenAI implements that interface.
 5. Core validates the returned analysis and makes business decisions.
 6. Shell persists analysis through a repository abstraction.
 
@@ -73,9 +73,9 @@ Core has no infrastructure dependencies.
 
 Shell depends on Core and owns the abstractions required by its use cases.
 
-ServiceDesk.AI implements the analyzer interface owned by Shell.
+ServiceDesk.AI.OpenAI implements the analyzer interface owned by Shell.
 ServiceDesk.Repository implements persistence abstractions owned by Shell.
-ServiceDesk.Messaging implements messaging infrastructure.
+ServiceDesk.OutboxMessaging implements messaging infrastructure.
 
 WebApi composes ticket-submission dependencies.
 The dedicated AI consumer host composes background-analysis dependencies.
