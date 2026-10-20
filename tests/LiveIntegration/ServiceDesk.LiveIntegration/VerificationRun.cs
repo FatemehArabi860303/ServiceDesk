@@ -297,13 +297,20 @@ internal sealed class VerificationRun(RunEnvironment environment, RunReport repo
             result.Detail = "OpenAI__ApiKey and OpenAI__Model are required; no provider request was made.";
             return;
         }
-        // All preceding queues must be drained. Only this one event can reach the real adapter.
-        var state = await QueueAsync();
-        Require(state.Ready == 0 && state.Unacknowledged == 0 && state.Consumers == 0, "Real smoke requires an empty isolated AI queue");
         try
         {
           await ScenarioAsync("Real OpenAI smoke test", async () =>
           {
+            // Management statistics may still describe the stopped consumer. Wait for
+            // observed isolation before submitting anything or starting the real adapter.
+            QueueState state = null!;
+            await environment.UntilAsync("Real smoke requires an empty isolated AI queue", async () =>
+            {
+                state = await QueueAsync();
+                report.Evidence["RealQueuePrecondition"] = $"Ready={state.Ready}; Unacknowledged={state.Unacknowledged}; Consumers={state.Consumers}";
+                report.Evidence.TryAdd("RealQueueFirstObservation", report.Evidence["RealQueuePrecondition"]);
+                return IsRealQueueReady(state.Ready, state.Unacknowledged, state.Consumers);
+            });
             var id = await SubmitAsync("real-openai");
             await WaitPublishedAsync(id);
             ai = await environment.StartAiAsync(real: true);
@@ -316,6 +323,8 @@ internal sealed class VerificationRun(RunEnvironment environment, RunReport repo
             var analysis = (await AnalysisAsync(id))!;
             var request = await EventAsync(id);
             Require(analysis.EventId == request.Id && analysis.TicketId == id, "Real provider durable identity");
+            report.Evidence["RealOpenAiTicketId"] = id.ToString();
+            report.Evidence["RealOpenAiEventId"] = request.Id.ToString();
             ValidateTicketAiAnalysisCore.Execute(JsonSerializer.Deserialize<TicketAiAnalysisResult>(analysis.ResultJson, Json)!);
             await WaitCompletedAsync(id, state.Acknowledgements);
             Require(environment.RealAnalyzer.Attempts == 1 && environment.RealAnalyzer.Successes == 1, "Exactly one real provider request");
@@ -460,6 +469,9 @@ internal sealed class VerificationRun(RunEnvironment environment, RunReport repo
     internal static bool HasRecipient(JsonElement message, string recipient) =>
         message.GetProperty("To").EnumerateArray().Any(to =>
             string.Equals(to.GetProperty("Address").GetString(), recipient, StringComparison.OrdinalIgnoreCase));
+
+    internal static bool IsRealQueueReady(long ready, long unacknowledged, int consumers) =>
+        ready == 0 && unacknowledged == 0 && consumers == 0;
 
     private string Marker(string marker) => environment.RunId + "-" + marker;
     private static void Require(bool condition, string stage)
