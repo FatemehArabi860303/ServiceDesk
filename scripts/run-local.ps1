@@ -43,12 +43,12 @@ try {
 
     Push-Location $repositoryRoot
     try {
-        & dotnet ef database update --project ".\src\ServiceDesk.Repository" --startup-project ".\src\ServiceDesk.Repository" --connection $connectionString
+        & dotnet ef database update --project ".\src\ServiceDesk\ServiceDesk.Repository" --startup-project ".\src\ServiceDesk\ServiceDesk.Repository" --connection $connectionString
         if ($LASTEXITCODE -ne 0) {
             throw "Applying EF Core migrations to ServiceDeskLocal failed."
         }
 
-        & dotnet run --project ".\src\ServiceDesk.WebApi" --launch-profile http
+        & dotnet run --project ".\src\ServiceDesk\ServiceDesk.WebApi" --launch-profile http
         if ($LASTEXITCODE -ne 0) {
             throw "ServiceDesk.WebApi stopped with exit code $LASTEXITCODE."
         }

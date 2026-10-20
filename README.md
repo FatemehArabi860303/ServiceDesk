@@ -18,3 +18,5 @@ The application demonstrates:
 - xUnit automated testing
 
 
+
+Project layout and compatibility decisions: [solution organization](docs/solution-organization.md).

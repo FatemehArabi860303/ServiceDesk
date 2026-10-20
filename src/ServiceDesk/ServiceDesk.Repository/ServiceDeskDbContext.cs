@@ -1,0 +1,29 @@
+using Microsoft.EntityFrameworkCore;
+using ServiceDesk.Core.Tickets;
+using ServiceDesk.Core.Users;
+using ServiceDesk.Repository.AiAnalysis;
+using ServiceDesk.Shell.Authentication;
+using ServiceDesk.Repository.Notifications;
+
+namespace ServiceDesk.Repository;
+
+public sealed class ServiceDeskDbContext(DbContextOptions<ServiceDeskDbContext> options) : DbContext(options)
+{
+    public DbSet<User> Users => Set<User>();
+
+    public DbSet<Ticket> Tickets => Set<Ticket>();
+
+    public DbSet<TicketHistory> TicketHistories => Set<TicketHistory>();
+
+    public DbSet<UserCredential> UserCredentials => Set<UserCredential>();
+
+    public DbSet<UserAccessProvision> UserAccessProvisions => Set<UserAccessProvision>();
+
+    public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
+    public DbSet<TicketAiAnalysis> TicketAiAnalyses => Set<TicketAiAnalysis>();
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(ServiceDeskDbContext).Assembly);
+    }
+}

@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <AssemblyName>ServiceDesk.Messaging</AssemblyName>
+    <RootNamespace>ServiceDesk.Messaging</RootNamespace>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Messaging\RabbitMq.Publishers\RabbitMq.Publishers.csproj" />
+    <ProjectReference Include="..\..\Messaging\RabbitMq.Consumers\RabbitMq.Consumers.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ServiceDesk.Contracts\ServiceDesk.Contracts.csproj" />
+    <ProjectReference Include="..\..\Notifications\Notification.Contracts\Notification.Contracts.csproj" />
+    <ProjectReference Include="..\ServiceDesk.Shell\ServiceDesk.Shell.csproj" />
+  </ItemGroup>
+
+</Project>
