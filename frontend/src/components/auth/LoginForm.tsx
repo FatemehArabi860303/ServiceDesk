@@ -1,6 +1,5 @@
 import React, { useState } from 'react'
 import { useAuth } from '../../auth/AuthContext'
-import { useNavigate, useLocation } from 'react-router-dom'
 
 type FormState = {
   email: string
@@ -12,8 +11,6 @@ export default function LoginForm() {
   const [errors, setErrors] = useState<string | null>(null)
   const { login } = useAuth()
   const [loading, setLoading] = useState(false)
-  const navigate = useNavigate()
-  const location = useLocation()
 
   const validate = () => {
     if (!form.email.trim()) return 'Email is required.'
@@ -32,8 +29,6 @@ export default function LoginForm() {
     setLoading(true)
     try {
       await login(form.email.trim(), form.password)
-      const from = (location.state as any)?.from?.pathname
-      navigate(from ?? '/admin', { replace: true })
     } catch (err: any) {
       const message = err?.message ?? 'Invalid email or password.'
       setErrors(message)

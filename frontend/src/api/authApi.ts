@@ -19,6 +19,7 @@ export async function login(req: LoginRequest): Promise<LoginResponse> {
     if (err?.status === 401) {
       throw new Error('Invalid email or password.')
     }
-    throw new Error(err?.message ?? 'Login failed.')
+    if (err instanceof TypeError) throw new Error('Unable to connect. Check your connection and try again.')
+    throw new Error('Unable to sign in. Please try again later.')
   }
 }

@@ -6,7 +6,9 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "vitest"
+    "test": "vitest",
+    "typecheck": "tsc --noEmit",
+    "test:live": "vitest run --config vitest.live.config.ts"
   },
   "dependencies": {
     "react": "18.2.0",
