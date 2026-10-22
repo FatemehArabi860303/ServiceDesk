@@ -102,6 +102,6 @@ describe('Admin Users pages', () => {
     const provision2 = screen.getAllByText(/Provision Access/i)[0]
     await userEvent.click(provision2)
     await waitFor(() => expect(screen.queryByText(/User Access Provisioned/i)).not.toBeInTheDocument())
-    expect(screen.getByText('This user already has login credentials and cannot be provisioned again.')).toBeInTheDocument()
+    expect(screen.getByText('Error: This user already has login credentials and cannot be provisioned again.', { exact: true })).toBeInTheDocument()
   })
 })
