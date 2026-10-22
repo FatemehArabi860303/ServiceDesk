@@ -65,9 +65,10 @@ describe('customer authentication and navigation', () => {
     expect(await screen.findByLabelText('Title')).toBeInTheDocument()
   })
   it.each(['Administrator', 'Employee'])('denies the customer form to %s', async role => {
+    fetchMock.mockResolvedValue(response({ items: [], page: 1, pageSize: 20, hasMore: false }))
     session(role); start()
     await waitFor(() => expect(screen.queryByLabelText('Title')).not.toBeInTheDocument())
-    expect(fetchMock).not.toHaveBeenCalled()
+    expect(fetchMock.mock.calls.every(([, options]) => options?.method !== 'POST')).toBe(true)
   })
   it('rejects an expired stored session', async () => {
     session('Customer', true); start()

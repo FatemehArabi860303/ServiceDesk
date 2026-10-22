@@ -49,6 +49,7 @@ builder.Services.AddScoped<ActivateUserAccountShell>();
 builder.Services.AddScoped<CreateTicketShell>();
 builder.Services.AddScoped<AssignTicketShell>();
 builder.Services.AddScoped<StartWorkShell>();
+builder.Services.AddScoped<EmployeeWorkShell>();
 builder.Services.AddScoped<ResolveTicketShell>();
 builder.Services.AddScoped<ConfirmResolutionShell>();
 builder.Services.AddScoped<GetAllTicketsShell>();

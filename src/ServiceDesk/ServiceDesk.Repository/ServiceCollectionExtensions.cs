@@ -35,6 +35,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAdministratorBootstrapRepository, AdministratorBootstrapRepository>();
         services.AddScoped<IUserAccessProvisionRepository, UserAccessProvisionRepository>();
         services.AddScoped<ITicketRepository, TicketRepository>();
+        services.AddScoped<IEmployeeWorkRepository, TicketRepository>();
         services.AddScoped<IOutboxRepository, OutboxRepository>();
         services.AddScoped<ITicketAiAnalysisRepository, TicketAiAnalysisRepository>();
 

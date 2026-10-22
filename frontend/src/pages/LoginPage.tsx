@@ -10,7 +10,7 @@ export default function LoginPage() {
         <h1 id="login-heading" className="brand">ServiceDesk</h1>
         <h2>Sign in to your account</h2>
         {(location.state as { sessionExpired?: boolean } | null)?.sessionExpired &&
-          <p role="status">Your session has expired. Sign in again to submit a request.</p>}
+          <p role="status">Your session has expired. Sign in again to continue.</p>}
         <LoginForm />
       </section>
     </main>

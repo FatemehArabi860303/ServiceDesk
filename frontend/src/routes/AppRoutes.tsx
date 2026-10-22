@@ -9,12 +9,15 @@ import ProtectedRoute from '../auth/ProtectedRoute'
 import CustomerLayout from '../pages/customer/CustomerLayout'
 import CustomerHomePage from '../pages/customer/CustomerHomePage'
 import SubmitRequestPage from '../pages/customer/SubmitRequestPage'
+import EmployeeLayout from '../pages/employee/EmployeeLayout'
+import EmployeeTicketsPage from '../pages/employee/EmployeeTicketsPage'
+import EmployeeTicketPage from '../pages/employee/EmployeeTicketPage'
 
 export default function AppRoutes() {
   const { isAuthenticated, user } = useAuth()
   const location = useLocation()
   const requested = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname
-  const home = user?.role === 'Customer' ? '/customer' : '/admin'
+  const home = user?.role === 'Customer' ? '/customer' : user?.role === 'Employee' ? '/employee' : '/admin'
   const destination = requested && (requested === home || requested.startsWith(`${home}/`)) ? requested : home
 
   return (
@@ -22,13 +25,18 @@ export default function AppRoutes() {
       <Route
         path="/login"
         element={
-          isAuthenticated && (user?.role === 'Administrator' || user?.role === 'Customer') ? (
+          isAuthenticated ? (
             <Navigate to={destination} replace />
           ) : (
             <LoginPage />
           )
         }
       />
+
+      <Route path="/employee" element={<ProtectedRoute requiredRole="Employee"><EmployeeLayout /></ProtectedRoute>}>
+        <Route index element={<EmployeeTicketsPage />} />
+        <Route path="tickets/:ticketId" element={<EmployeeTicketPage />} />
+      </Route>
 
       <Route path="/customer" element={<ProtectedRoute requiredRole="Customer"><CustomerLayout /></ProtectedRoute>}>
         <Route index element={<CustomerHomePage />} />
