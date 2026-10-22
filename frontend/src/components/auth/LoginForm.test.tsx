@@ -4,7 +4,6 @@ import { render, screen, cleanup } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import LoginForm from './LoginForm'
 import * as AuthContext from '../../auth/AuthContext'
-import type { AuthState } from '../../auth/authTypes'
 import { MemoryRouter } from 'react-router-dom'
 
 describe('LoginForm', () => {
@@ -21,7 +20,7 @@ describe('LoginForm', () => {
       user: null,
       login: vi.fn(async () => {}),
       logout: vi.fn()
-    } as Partial<AuthState & { login: () => Promise<void> }>)
+    })
 
     render(
       <MemoryRouter>
@@ -44,7 +43,7 @@ describe('LoginForm', () => {
       user: null,
       login: loginMock,
       logout: vi.fn()
-    } as Partial<AuthState & { login: typeof loginMock }>)
+    })
 
     render(
       <MemoryRouter>
@@ -69,7 +68,7 @@ describe('LoginForm', () => {
       user: null,
       login: loginMock,
       logout: vi.fn()
-    } as Partial<AuthState & { login: typeof loginMock }>)
+    })
 
     render(
       <MemoryRouter>

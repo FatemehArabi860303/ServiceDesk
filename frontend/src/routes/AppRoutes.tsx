@@ -1,27 +1,39 @@
 import React from 'react'
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import LoginPage from '../pages/LoginPage'
 import AdminHomePage from '../pages/admin/AdminHomePage'
 import UsersPage from '../pages/admin/UsersPage'
 import CreateUserPage from '../pages/admin/CreateUserPage'
 import { useAuth } from '../auth/AuthContext'
 import ProtectedRoute from '../auth/ProtectedRoute'
+import CustomerLayout from '../pages/customer/CustomerLayout'
+import CustomerHomePage from '../pages/customer/CustomerHomePage'
+import SubmitRequestPage from '../pages/customer/SubmitRequestPage'
 
 export default function AppRoutes() {
   const { isAuthenticated, user } = useAuth()
+  const location = useLocation()
+  const requested = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname
+  const home = user?.role === 'Customer' ? '/customer' : '/admin'
+  const destination = requested && (requested === home || requested.startsWith(`${home}/`)) ? requested : home
 
   return (
     <Routes>
       <Route
         path="/login"
         element={
-          isAuthenticated && user?.role === 'Administrator' ? (
-            <Navigate to="/admin" replace />
+          isAuthenticated && (user?.role === 'Administrator' || user?.role === 'Customer') ? (
+            <Navigate to={destination} replace />
           ) : (
             <LoginPage />
           )
         }
       />
+
+      <Route path="/customer" element={<ProtectedRoute requiredRole="Customer"><CustomerLayout /></ProtectedRoute>}>
+        <Route index element={<CustomerHomePage />} />
+        <Route path="requests/new" element={<SubmitRequestPage />} />
+      </Route>
 
       <Route
         path="/admin"
